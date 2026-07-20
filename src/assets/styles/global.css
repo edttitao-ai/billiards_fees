@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #app {
+    @apply h-full;
+  }
+  body {
+    @apply bg-ink-50 text-ink-900 antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-tap-highlight-color: transparent;
+  }
+  input,
+  button,
+  select,
+  textarea {
+    @apply font-sans;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-[960px] px-4 sm:px-6 pb-24 sm:pb-12;
+  }
+  .num-input::-webkit-outer-spin-button,
+  .num-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .num-input {
+    -moz-appearance: textfield;
+  }
+}
+
+/* 自定义滚动条：移动端隐藏 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-ink-200 rounded;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-ink-300;
+}
