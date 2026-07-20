@@ -11,15 +11,14 @@ import SummaryCard from '@/components/business/SummaryCard.vue'
 import { useSessionStore } from '@/stores/session'
 import { useHistoryStore } from '@/stores/history'
 import { useUIStore } from '@/stores/ui'
-import { buildBillText, copyToClipboard, shareOrCopy } from '@/utils/share'
-
+import { buildBillText, copyToClipboard } from '@/utils/share'
 
 const session = useSessionStore()
 const history = useHistoryStore()
 const ui = useUIStore()
 
 const saving = ref(false)
-/** 最近一次保存的"指纹"，避免保存按钮重复刷记录 */
+/** 最近一次保存的“指纹”，避免保存按钮重复刷记录 */
 const lastSavedFingerprint = ref<string>('')
 
 onMounted(() => {
@@ -47,7 +46,7 @@ function fingerprint(): string {
   })
 }
 
-/** 保存按钮启用条件：至少有套餐 & 至少有一位参与人员 */
+/** 保存按钮启用条件：至少有套餐且至少有一位参与人员 */
 const canSave = computed(
   () => session.packages.length > 0 && session.participants.length > 0
 )
@@ -85,10 +84,6 @@ async function onExport() {
   await saveSnapshot(true)
 }
 
-async function onShare() {
-  // 旧的纯文本分享逻辑已经被底部"分享"菜单替代，保留为 no-op 以防外部误用。
-}
-
 async function onSave() {
   if (saving.value) return
   if (!canSave.value) {
@@ -121,13 +116,15 @@ async function onReset() {
   <div class="container-page">
     <TopBar title="台费分摊" />
 
-    <div class="space-y-3 sm:space-y-4">
+    <main class="space-y-4">
       <BillHeader />
-      <PackageList />
-      <TableCountCard />
-      <ParticipantSection />
-      <SummaryCard />
-    </div>
+      <div class="grid gap-4 lg:grid-cols-12 lg:items-start">
+        <PackageList class="order-1 lg:col-span-12" />
+        <TableCountCard class="order-2 lg:order-3 lg:col-span-4" />
+        <ParticipantSection class="order-3 lg:order-2 lg:col-span-8" />
+        <SummaryCard class="order-4 lg:col-span-12" />
+      </div>
+    </main>
 
     <BottomBar
       :session="sessionView()"

@@ -15,9 +15,7 @@ interface Props {
   options: Option[]
   placeholder?: string
   disabled?: boolean
-  /** 选中态是否展示对勾 */
   showCheck?: boolean
-  /** 触发器尺寸 */
   size?: 'sm' | 'md'
 }
 
@@ -29,16 +27,15 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', v: string | number): void
-  (e: 'change', v: string | number): void
+  (e: 'update:modelValue', value: string | number): void
+  (e: 'change', value: string | number): void
 }>()
 
 const open = ref(false)
 const triggerRef = ref<HTMLElement | null>(null)
 const panelRef = ref<HTMLElement | null>(null)
-
 const current = computed(
-  () => props.options.find((o) => o.value === props.modelValue) ?? null
+  () => props.options.find((option) => option.value === props.modelValue) ?? null
 )
 
 function toggle() {
@@ -46,27 +43,27 @@ function toggle() {
   open.value = !open.value
 }
 
-function pick(opt: Option) {
-  emit('update:modelValue', opt.value)
-  emit('change', opt.value)
+function pick(option: Option) {
+  emit('update:modelValue', option.value)
+  emit('change', option.value)
   open.value = false
   triggerRef.value?.focus()
 }
 
-function onDocClick(e: MouseEvent) {
+function onDocClick(event: MouseEvent) {
   if (!open.value) return
-  const t = e.target as Node
-  if (triggerRef.value?.contains(t)) return
-  if (panelRef.value?.contains(t)) return
+  const target = event.target as Node
+  if (triggerRef.value?.contains(target)) return
+  if (panelRef.value?.contains(target)) return
   open.value = false
 }
 
-function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') open.value = false
+function onKey(event: KeyboardEvent) {
+  if (event.key === 'Escape') open.value = false
 }
 
-watch(open, async (v) => {
-  if (v) {
+watch(open, async (value) => {
+  if (value) {
     document.addEventListener('click', onDocClick)
     document.addEventListener('keydown', onKey)
     await nextTick()
@@ -90,21 +87,23 @@ onBeforeUnmount(() => {
       :disabled="disabled"
       :class="
         clsx(
-          'inline-flex w-full items-center justify-between gap-1.5 rounded-md border bg-white text-ink-900 transition-colors',
+          'inline-flex w-full items-center justify-between gap-1.5 rounded-[10px] border bg-[#fffefb] text-ink-900 transition-all',
           'focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100',
           'disabled:cursor-not-allowed disabled:opacity-50',
-          size === 'sm' ? 'h-8 px-2.5 text-sm' : 'h-10 px-3 text-sm',
-          open ? 'border-brand-400 ring-2 ring-brand-100' : 'border-ink-200 hover:border-ink-300'
+          size === 'sm' ? 'h-9 px-2.5 text-sm' : 'h-10 px-3 text-sm',
+          open
+            ? 'border-brand-400 ring-2 ring-brand-100'
+            : 'border-ink-200 hover:border-brand-300'
         )
       "
       @click="toggle"
     >
-      <span :class="clsx('truncate', !current && 'text-ink-400')">
+      <span :class="clsx('truncate font-medium', !current && 'text-ink-400')">
         {{ current ? current.label : placeholder }}
       </span>
       <ChevronDown
-        :size="16"
-        :class="clsx('shrink-0 text-ink-400 transition-transform', open && 'rotate-180 text-brand-600')"
+        :size="15"
+        :class="clsx('shrink-0 text-ink-400 transition-transform', open && 'rotate-180 text-brand-700')"
       />
     </button>
 
@@ -112,44 +111,38 @@ onBeforeUnmount(() => {
       <div
         v-if="open"
         ref="panelRef"
-        class="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-[420px] rounded-t-2xl bg-white p-2 shadow-soft sm:absolute sm:bottom-auto sm:left-0 sm:top-full sm:mt-1.5 sm:rounded-lg sm:p-1.5"
-        style="padding-bottom: max(12px, env(safe-area-inset-bottom))"
+        class="fixed inset-x-2 bottom-2 z-50 mx-auto w-auto max-w-[420px] rounded-2xl border border-ink-200 bg-[#fffefb] p-2 shadow-floating sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-1.5 sm:w-full sm:min-w-56"
+        style="padding-bottom: max(10px, env(safe-area-inset-bottom))"
       >
-        <!-- 移动端小把手 -->
-        <div class="mx-auto mb-2 mt-1 h-1 w-10 rounded-full bg-ink-200 sm:hidden" />
+        <div class="mx-auto mb-2 mt-0.5 h-1 w-9 rounded-full bg-ink-200 sm:hidden" />
         <ul class="max-h-[60vh] overflow-y-auto sm:max-h-[280px]">
           <li
-            v-for="opt in options"
-            :key="opt.value"
+            v-for="option in options"
+            :key="option.value"
             :class="
               clsx(
-                'flex cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                'hover:bg-brand-50',
-                opt.value === modelValue && 'bg-brand-50'
+                'flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-brand-50',
+                option.value === modelValue && 'bg-brand-50'
               )
             "
-            @click="pick(opt)"
+            @click="pick(option)"
           >
             <div class="min-w-0 flex-1">
               <div
-                :class="
-                  clsx(
-                    'truncate font-medium',
-                    opt.value === modelValue ? 'text-brand-700' : 'text-ink-900'
-                  )
-                "
+                :class="clsx('truncate font-semibold', option.value === modelValue ? 'text-brand-800' : 'text-ink-900')"
               >
-                {{ opt.label }}
+                {{ option.label }}
               </div>
-              <div v-if="opt.description" class="mt-0.5 truncate text-xs text-ink-400">
-                {{ opt.description }}
+              <div v-if="option.description" class="mt-0.5 truncate text-xs text-ink-400">
+                {{ option.description }}
               </div>
             </div>
-            <Check
-              v-if="showCheck && opt.value === modelValue"
-              :size="16"
-              class="shrink-0 text-brand-600"
-            />
+            <span
+              v-if="showCheck && option.value === modelValue"
+              class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-700 text-white"
+            >
+              <Check :size="13" />
+            </span>
           </li>
         </ul>
       </div>
@@ -165,7 +158,7 @@ onBeforeUnmount(() => {
 .picker-enter-from,
 .picker-leave-to {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(8px) scale(0.99);
 }
 @media (max-width: 640px) {
   .picker-enter-from,

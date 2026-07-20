@@ -4,7 +4,7 @@ import AppConfirmDialog from '@/components/base/AppConfirmDialog.vue'
 </script>
 
 <template>
-  <div class="min-h-full bg-ink-50">
+  <div class="app-shell">
     <RouterView v-slot="{ Component }">
       <transition name="fade" mode="out-in">
         <component :is="Component" />
@@ -17,9 +17,12 @@ import AppConfirmDialog from '@/components/base/AppConfirmDialog.vue'
 <style>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.18s ease;
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
-.fade-enter-from,
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(4px);
+}
 .fade-leave-to {
   opacity: 0;
 }

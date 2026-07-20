@@ -14,31 +14,31 @@ const session = useSessionStore()
 const ui = useUIStore()
 const packages = computed(() => session.packages)
 
-/** 模板 + 自定义 的下拉选项 */
 const templateOptions = computed(() => [
-  ...PACKAGE_TEMPLATES.map((t, i) => ({
-    value: `tpl-${i}`,
-    label: t.name,
-    description: `${t.hours} 小时 · ¥${t.price}/张`
+  ...PACKAGE_TEMPLATES.map((template, index) => ({
+    value: `tpl-${index}`,
+    label: template.name,
+    description: `${template.hours} 小时 · ¥${template.price}/张`
   })),
   { value: 'custom', label: '自定义套餐', description: '自己填时长与单价' }
 ])
 
 function currentTplValue(pkg: { name: string; hours: number; price: number }): string {
-  const idx = PACKAGE_TEMPLATES.findIndex(
-    (t) => t.name === pkg.name && t.hours === pkg.hours && t.price === pkg.price
+  const index = PACKAGE_TEMPLATES.findIndex(
+    (template) =>
+      template.name === pkg.name && template.hours === pkg.hours && template.price === pkg.price
   )
-  return idx >= 0 ? `tpl-${idx}` : 'custom'
+  return index >= 0 ? `tpl-${index}` : 'custom'
 }
 
-function onTemplateChange(id: string, v: string | number) {
-  const s = String(v)
-  if (s === 'custom') {
+function onTemplateChange(id: string, value: string | number) {
+  const selected = String(value)
+  if (selected === 'custom') {
     session.setPackageName(id, '自定义套餐')
     session.setPackageHours(id, 1)
     session.setPackagePrice(id, 60)
-  } else if (s.startsWith('tpl-')) {
-    session.applyPackageTemplate(id, Number(s.slice(4)))
+  } else if (selected.startsWith('tpl-')) {
+    session.applyPackageTemplate(id, Number(selected.slice(4)))
   }
 }
 
@@ -66,11 +66,16 @@ async function removePackage(id: string, name: string) {
 
 <template>
   <AppCard>
-    <div class="mb-3 flex items-center justify-between">
-      <div class="flex items-center gap-2 text-ink-900">
-        <Tickets :size="18" class="text-brand-600" />
-        <span class="font-semibold">套餐列表</span>
-        <span class="text-xs text-ink-400">({{ packages.length }} 项)</span>
+    <div class="mb-4 flex items-end justify-between gap-3">
+      <div>
+        <div class="section-kicker">Packages</div>
+        <div class="mt-0.5 flex items-center gap-2">
+          <Tickets :size="17" class="text-brand-600" />
+          <h2 class="section-title">套餐列表</h2>
+          <span class="rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-semibold text-ink-500">
+            {{ packages.length }} 项
+          </span>
+        </div>
       </div>
       <AppButton variant="primary" size="sm" @click="addPackage">
         <Plus :size="14" />
@@ -78,62 +83,57 @@ async function removePackage(id: string, name: string) {
       </AppButton>
     </div>
 
-    <!-- PC 表头 -->
     <div
-      class="hidden grid-cols-[1fr_72px_92px_auto_100px_36px] items-center gap-2 px-1 pb-2 text-xs text-ink-400 sm:grid"
+      class="hidden grid-cols-[minmax(160px,1fr)_84px_96px_112px_104px_32px] items-center gap-2 rounded-xl bg-ink-50 px-3 py-2 font-data text-[10px] font-semibold uppercase tracking-wider text-ink-400 sm:grid"
     >
       <div>套餐</div>
-      <div class="text-center">时长(h)</div>
-      <div class="text-center">单价(¥/张)</div>
+      <div class="text-center">时长</div>
+      <div class="text-center">单价</div>
       <div class="text-center">张数</div>
-      <div class="text-right pr-1">小计</div>
-      <div></div>
+      <div class="text-right">小计</div>
+      <div />
     </div>
 
-    <ul v-if="packages.length" class="divide-y divide-ink-100">
-      <!-- 移动端：竖排卡片；PC 端：6 列表格 -->
+    <ul v-if="packages.length" class="space-y-3 sm:space-y-0 sm:divide-y sm:divide-ink-100">
       <li
-        v-for="pkg in packages"
+        v-for="(pkg, index) in packages"
         :key="pkg.id"
-        class="space-y-2 px-1 py-3 sm:space-y-0 sm:grid sm:grid-cols-[1fr_72px_92px_auto_100px_36px] sm:items-center sm:gap-2"
+        class="rounded-2xl border border-ink-100 bg-ink-50/45 p-3 sm:grid sm:grid-cols-[minmax(160px,1fr)_84px_96px_112px_104px_32px] sm:items-center sm:gap-2 sm:rounded-none sm:border-0 sm:bg-transparent sm:px-3 sm:py-3"
       >
-        <!-- 套餐选择（移动端 / PC 端共占第 1 列） -->
-        <div class="flex items-center min-w-0">
+        <div class="flex min-w-0 items-center">
           <span
-            class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-brand-700 sm:hidden"
+            class="mr-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-700 font-data text-[9px] font-bold text-white sm:hidden"
           >
-            <Tickets :size="14" />
+            P{{ index + 1 }}
           </span>
-          <div class="ml-2 min-w-0 flex-1 sm:ml-0">
+          <div class="min-w-0 flex-1">
             <AppPicker
               :model-value="currentTplValue(pkg)"
               :options="templateOptions"
               size="sm"
-              @change="(v) => onTemplateChange(pkg.id, v)"
+              @change="(value) => onTemplateChange(pkg.id, value)"
             />
             <input
               v-if="currentTplValue(pkg) === 'custom'"
               :value="pkg.name"
-              class="mt-1.5 h-8 w-full rounded-md border border-ink-200 bg-white px-2 text-xs focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
+              class="mt-1.5 h-8 w-full rounded-xl border border-ink-200 bg-white px-2.5 text-xs focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
               placeholder="套餐名"
-              @input="(e) => session.setPackageName(pkg.id, (e.target as HTMLInputElement).value)"
+              @input="(event) => session.setPackageName(pkg.id, (event.target as HTMLInputElement).value)"
             />
           </div>
         </div>
 
-        <!-- 移动端：3 个 chip 一行；PC 端分别占列 -->
-        <div class="grid grid-cols-3 gap-2 sm:contents">
-          <!-- 时长(h)：移动端 chip + PC NumberStepper -->
-          <div class="flex flex-col items-stretch sm:flex sm:items-center sm:justify-center">
-            <span class="mb-1 text-[11px] text-ink-400 sm:hidden">时长(h)</span>
-            <div class="flex items-center rounded-md border border-ink-200 bg-white px-1 sm:border-transparent sm:bg-transparent sm:px-0">
+        <div class="mt-3 grid grid-cols-3 gap-2 sm:contents">
+          <div class="flex min-w-0 flex-col items-stretch sm:items-center sm:justify-center">
+            <span class="mb-1 text-[10px] font-medium text-ink-400 sm:hidden">时长</span>
+            <div class="flex min-w-0 items-center overflow-hidden rounded-[10px] border border-ink-200 bg-[#fffefb] sm:border-transparent sm:bg-transparent">
               <input
                 :value="pkg.hours"
                 type="number"
                 step="0.5"
                 min="0"
-                class="num-input h-9 w-12 bg-transparent text-center text-sm tabular-nums focus:outline-none sm:hidden"
-                @input="(e) => session.setPackageHours(pkg.id, Number((e.target as HTMLInputElement).value))"
+                class="num-input h-9 min-w-0 flex-1 bg-transparent text-center font-data text-sm font-bold tabular-nums focus:outline-none sm:hidden"
+                @input="(event) => session.setPackageHours(pkg.id, Number((event.target as HTMLInputElement).value))"
               />
               <div class="hidden sm:block">
                 <NumberStepper
@@ -142,115 +142,86 @@ async function removePackage(id: string, name: string) {
                   :min="0"
                   :max="24"
                   size="sm"
-                  @update:model-value="(v) => session.setPackageHours(pkg.id, v)"
+                  @update:model-value="(value) => session.setPackageHours(pkg.id, value)"
                 />
               </div>
             </div>
           </div>
 
-          <!-- 单价(¥/张)：移动端 chip + PC input -->
-          <div class="flex flex-col items-stretch sm:flex sm:items-center sm:justify-center">
-            <span class="mb-1 text-[11px] text-ink-400 sm:hidden">单价(¥/张)</span>
-            <div
-              class="relative flex items-center rounded-md border border-ink-200 bg-white pl-2 pr-1 sm:rounded-md sm:border sm:border-ink-200 sm:bg-white sm:pl-5 sm:pr-1"
-            >
-              <span class="text-xs text-brand-600 sm:absolute sm:left-2 sm:top-1/2 sm:-translate-y-1/2">
-                ¥
-              </span>
+          <div class="flex min-w-0 flex-col items-stretch sm:items-center sm:justify-center">
+            <span class="mb-1 text-[10px] font-medium text-ink-400 sm:hidden">单价</span>
+            <div class="relative flex min-w-0 items-center rounded-[10px] border border-ink-200 bg-[#fffefb] pl-2 pr-1 sm:pl-4">
+              <span class="shrink-0 font-data text-xs font-semibold text-accent-600 sm:absolute sm:left-2">¥</span>
               <input
                 :value="pkg.price"
                 type="number"
                 step="0.01"
                 min="0"
-                class="num-input h-9 w-full bg-transparent text-right text-sm tabular-nums focus:outline-none sm:focus:border-brand-400 sm:focus:ring-2 sm:focus:ring-brand-100"
-                @input="(e) => session.setPackagePrice(pkg.id, Number((e.target as HTMLInputElement).value))"
+                class="num-input h-9 min-w-0 flex-1 bg-transparent text-right font-data text-sm font-bold tabular-nums text-ink-900 focus:outline-none"
+                @input="(event) => session.setPackagePrice(pkg.id, Number((event.target as HTMLInputElement).value))"
               />
             </div>
           </div>
 
-          <!-- 张数：移动端 chip + PC lucide 图标按钮 -->
-          <div class="flex flex-col items-stretch sm:flex sm:items-center sm:justify-center">
-            <span class="mb-1 text-[11px] text-ink-400 sm:hidden">张数</span>
-            <div class="inline-flex items-center overflow-hidden rounded-md border border-ink-200">
+          <div class="flex min-w-0 flex-col items-stretch sm:items-center sm:justify-center">
+            <span class="mb-1 text-[10px] font-medium text-ink-400 sm:hidden">张数</span>
+            <div class="flex min-w-0 items-center overflow-hidden rounded-[10px] border border-ink-200 bg-[#fffefb]">
               <button
                 type="button"
-                class="inline-flex h-9 w-9 items-center justify-center border-r border-ink-200 text-ink-500 hover:bg-ink-100 disabled:opacity-40"
+                class="inline-flex h-9 w-7 shrink-0 items-center justify-center border-r border-ink-100 text-ink-500 hover:bg-brand-50 disabled:opacity-35 sm:w-8"
                 :disabled="pkg.qty <= 0"
                 aria-label="减少"
                 @click="session.setPackageQty(pkg.id, pkg.qty - 1)"
               >
-                <Minus :size="14" />
+                <Minus :size="13" />
               </button>
               <input
                 :value="pkg.qty"
                 type="number"
                 step="1"
                 min="0"
-                class="num-input h-9 w-12 border-x border-ink-200 bg-white text-center text-sm tabular-nums focus:outline-none focus:ring-1 focus:ring-brand-200"
-                @input="(e) => session.setPackageQty(pkg.id, Number((e.target as HTMLInputElement).value))"
+                class="num-input h-9 min-w-0 flex-1 bg-transparent text-center font-data text-sm font-bold tabular-nums text-ink-900 focus:outline-none"
+                @input="(event) => session.setPackageQty(pkg.id, Number((event.target as HTMLInputElement).value))"
               />
               <button
                 type="button"
-                class="inline-flex h-9 w-9 items-center justify-center border-l border-ink-200 text-ink-500 hover:bg-ink-100"
+                class="inline-flex h-9 w-7 shrink-0 items-center justify-center border-l border-ink-100 text-brand-700 hover:bg-brand-50 sm:w-8"
                 aria-label="增加"
                 @click="session.setPackageQty(pkg.id, pkg.qty + 1)"
               >
-                <Plus :size="14" />
+                <Plus :size="13" />
               </button>
             </div>
           </div>
         </div>
 
-        <!-- 小计 + 删除（移动端：左右分布；PC：小计+删除两列） -->
-        <div class="flex items-center justify-between rounded-md bg-ink-50 px-3 py-2 sm:contents sm:bg-transparent sm:px-0 sm:py-0">
-          <div class="flex flex-col leading-none">
-            <span class="text-[11px] text-ink-400 sm:hidden">小计</span>
-            <div class="flex items-baseline gap-1.5">
-              <span class="text-base font-bold text-brand-600 tabular-nums sm:text-lg">
-                {{ formatCurrency(packageSubtotal(pkg)) }}
-              </span>
-              <span class="text-xs text-ink-400 tabular-nums">{{ packageHours(pkg) }} h</span>
-            </div>
+        <div class="mt-3 flex items-center justify-between border-t border-dashed border-ink-200 pt-2.5 sm:contents sm:border-0 sm:pt-0">
+          <div class="flex items-baseline gap-1 sm:block sm:text-right">
+            <span class="text-[10px] font-medium text-ink-400 sm:hidden">小计</span>
+            <span class="data-number text-base font-bold text-accent-600">
+              {{ formatCurrency(packageSubtotal(pkg)) }}
+            </span>
+            <span class="text-[10px] text-ink-400 sm:block">{{ packageHours(pkg) }} h</span>
           </div>
           <button
-            class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-400 hover:bg-red-50 hover:text-danger-500"
+            class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-red-50 hover:text-danger-500"
             aria-label="删除"
             @click="removePackage(pkg.id, pkg.name)"
           >
-            <Trash2 :size="16" />
+            <Trash2 :size="15" />
           </button>
         </div>
       </li>
     </ul>
 
-    <!-- 移动端合计行 -->
-    <div class="mt-2 grid grid-cols-2 gap-2 text-sm sm:hidden">
-      <div class="rounded-md bg-ink-50 px-3 py-2">
-        <div class="text-xs text-ink-400">总时长</div>
-        <div class="font-semibold text-ink-900">{{ session.totalDuration }} 小时</div>
+    <div class="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end sm:gap-3">
+      <div class="rounded-xl border border-ink-100 bg-ink-50 px-3 py-2 sm:min-w-32">
+        <div class="text-[10px] font-medium text-ink-400">累计时长</div>
+        <div class="data-number mt-0.5 text-sm font-bold text-ink-700">{{ session.totalDuration }} 小时</div>
       </div>
-      <div class="rounded-md bg-brand-50 px-3 py-2">
-        <div class="text-xs text-brand-700">总台费</div>
-        <div class="font-semibold text-brand-600">{{ formatCurrency(session.totalFee) }}</div>
-      </div>
-    </div>
-
-    <!-- PC 端合计行 -->
-    <div class="mt-3 hidden items-center justify-between rounded-md bg-brand-50 px-3 py-2 sm:flex">
-      <div class="flex items-center gap-4 text-sm text-brand-700">
-        <span>
-          共
-          <span class="font-semibold">{{ packages.reduce((s, p) => s + p.qty, 0) }}</span>
-          张
-        </span>
-        <span>
-          总时长
-          <span class="font-semibold">{{ session.totalDuration }}</span>
-          小时
-        </span>
-      </div>
-      <div class="text-base font-bold text-brand-600">
-        总台费 {{ formatCurrency(session.totalFee) }}
+      <div class="rounded-xl border border-accent-200 bg-accent-50 px-3 py-2 sm:min-w-36">
+        <div class="text-[10px] font-medium text-accent-700">套餐总额</div>
+        <div class="data-number mt-0.5 text-base font-bold text-accent-700">{{ formatCurrency(session.totalFee) }}</div>
       </div>
     </div>
   </AppCard>

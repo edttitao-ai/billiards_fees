@@ -1,12 +1,4 @@
 <script setup lang="ts">
-/**
- * 简单的分享方式选择器。点 [分享] 按钮弹出三种方式：
- *   - 复制文本：直接复制 plain text 账单
- *   - 生成图片：截图 PNG 并下载 / 调系统分享
- *   - 生成共享链接：生成 /share?p=… 链接并复制
- *
- * 用法：<ShareChooser @copy-text @image-png @share-link />
- */
 import { computed, ref } from 'vue'
 import { Share2, Copy, Image, Link2, ChevronUp } from 'lucide-vue-next'
 import { useUIStore } from '@/stores/ui'
@@ -32,7 +24,6 @@ const emit = defineEmits<{
 
 const ui = useUIStore()
 const open = ref(false)
-
 const canShareFiles = computed(() => typeof navigator !== 'undefined' && 'share' in navigator)
 
 async function close() {
@@ -51,10 +42,9 @@ async function handleImage() {
   await close()
   ui.showToast('正在生成图片…', 'info')
   let blob: Blob | null = null
-  let filename = posterFilename(props.session.title)
+  const filename = posterFilename(props.session.title)
   try {
     blob = await sessionToPngBlob(props.session)
-    // 优先用 Web Share API（移动端能直接发到微信/朋友圈）
     if (
       typeof navigator !== 'undefined' &&
       typeof navigator.canShare === 'function' &&
@@ -67,7 +57,7 @@ async function handleImage() {
       return
     }
   } catch {
-    /* 走到下载 fallback */
+    // 不支持系统分享时降级为下载
   }
   if (blob) {
     downloadBlob(blob, filename)
@@ -89,58 +79,61 @@ async function handleShareLink() {
   <div class="relative">
     <button
       type="button"
-      class="inline-flex h-9 px-3 text-xs font-medium items-center gap-1 rounded-md bg-brand-500 text-white hover:bg-brand-600 sm:h-10 sm:px-5 sm:text-sm"
+      class="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-800 bg-brand-800 px-3 text-xs font-semibold text-white shadow-soft transition hover:bg-brand-900 sm:h-10 sm:px-4 sm:text-sm"
       @click="open = !open"
     >
-      <Share2 :size="14" class="sm:hidden" />
-      <Share2 :size="16" class="hidden sm:block" />
+      <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent-300 text-brand-900">
+        <Share2 :size="11" />
+      </span>
       <span class="whitespace-nowrap">导出账单</span>
-      <ChevronUp :size="14" class="transition-transform" :class="open ? '' : 'rotate-180'" />
+      <ChevronUp :size="13" class="transition-transform" :class="open ? '' : 'rotate-180'" />
     </button>
 
-    <!-- 下拉 -->
     <transition name="pop">
       <div
         v-if="open"
-        class="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-lg border border-ink-100 bg-white shadow-card sm:left-auto sm:right-0 sm:bottom-full sm:mb-2 sm:w-60"
-        style="z-index: 40"
+        class="absolute bottom-full right-0 z-40 mb-2 w-60 overflow-hidden rounded-2xl border border-ink-200 bg-[#fffefb] p-1.5 shadow-floating"
       >
+        <div class="px-2 pb-1 pt-0.5 font-data text-[9px] font-semibold uppercase tracking-[0.18em] text-ink-400">
+          选择导出方式
+        </div>
         <button
           type="button"
-          class="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left text-xs hover:bg-ink-50"
+          class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-ink-700 hover:bg-brand-50"
           @click="handleCopyText"
         >
-          <Copy :size="14" class="shrink-0 text-ink-500" />
-          <span class="flex-1">导出为文本</span>
+          <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-ink-100 text-ink-500">
+            <Copy :size="13" />
+          </span>
+          <span class="flex-1 whitespace-nowrap">导出为文本</span>
         </button>
         <button
           type="button"
-          class="flex w-full items-center gap-2 whitespace-nowrap border-t border-ink-100 px-3 py-2 text-left text-xs hover:bg-ink-50"
+          class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-ink-700 hover:bg-brand-50"
           @click="handleImage"
         >
-          <Image :size="14" class="shrink-0 text-ink-500" />
-          <span class="flex-1">生成账单图片</span>
-          <span class="shrink-0 text-[10px] text-ink-400">
-            {{ canShareFiles ? '可分享到微信' : '下载到本地' }}
+          <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-50 text-accent-600">
+            <Image :size="13" />
+          </span>
+          <span class="min-w-0 flex-1 whitespace-nowrap">生成账单图片</span>
+          <span class="shrink-0 whitespace-nowrap text-[10px] text-ink-400">
+            {{ canShareFiles ? '可分享' : '下载' }}
           </span>
         </button>
         <button
           type="button"
-          class="flex w-full items-center gap-2 whitespace-nowrap border-t border-ink-100 px-3 py-2 text-left text-xs hover:bg-ink-50"
+          class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-ink-700 hover:bg-brand-50"
           @click="handleShareLink"
         >
-          <Link2 :size="14" class="shrink-0 text-ink-500" />
-          <span class="flex-1">复制共享链接</span>
+          <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
+            <Link2 :size="13" />
+          </span>
+          <span class="flex-1 whitespace-nowrap">复制共享链接</span>
         </button>
       </div>
     </transition>
 
-    <!-- 点击外部关闭 -->
-    <div
-      v-if="open"
-      class="fixed inset-0 z-30"
-      @click="close"
-    />
+    <div v-if="open" class="fixed inset-0 z-30" @click="close" />
   </div>
 </template>
 
@@ -152,6 +145,6 @@ async function handleShareLink() {
 .pop-enter-from,
 .pop-leave-to {
   opacity: 0;
-  transform: translateY(6px);
+  transform: translateY(6px) scale(0.98);
 }
 </style>

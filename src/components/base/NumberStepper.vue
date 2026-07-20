@@ -18,11 +18,11 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', v: number): void
+  (e: 'update:modelValue', value: number): void
 }>()
 
-function clamp(n: number) {
-  return Math.min(props.max, Math.max(props.min, Math.round(n * 2) / 2))
+function clamp(value: number) {
+  return Math.min(props.max, Math.max(props.min, Math.round(value * 2) / 2))
 }
 
 function bump(delta: number) {
@@ -31,51 +31,29 @@ function bump(delta: number) {
 </script>
 
 <template>
-  <div
-    :class="
-      clsx(
-        'inline-flex items-center',
-        size === 'sm' ? 'gap-1.5 text-sm' : 'gap-2 text-base'
-      )
-    "
-  >
+  <div class="inline-flex items-center overflow-hidden rounded-[10px] border border-ink-200 bg-[#fffefb] shadow-[0_1px_1px_rgba(24,33,29,0.03)]">
     <button
       type="button"
-      :class="
-        clsx(
-          'inline-flex items-center justify-center rounded-md border border-ink-200 bg-white text-ink-500 hover:border-brand-400 hover:text-brand-600 disabled:opacity-40',
-          size === 'sm' ? 'h-8 w-8' : 'h-9 w-9'
-        )
-      "
+      :class="clsx('inline-flex items-center justify-center border-r border-ink-100 text-ink-500 hover:bg-brand-50 hover:text-brand-700 disabled:opacity-35', size === 'sm' ? 'h-8 w-7' : 'h-9 w-9')"
       :disabled="modelValue <= min"
-      @click="bump(-step)"
       aria-label="减少"
+      @click="bump(-step)"
     >
-      <Minus :size="16" />
+      <Minus :size="13" />
     </button>
     <div
-      :class="
-        clsx(
-          'text-center font-semibold tabular-nums text-ink-900',
-          size === 'sm' ? 'min-w-[2rem] text-xs' : 'min-w-[3rem] text-base'
-        )
-      "
+      :class="clsx('data-number text-center font-bold text-ink-900', size === 'sm' ? 'min-w-[30px] text-xs' : 'min-w-[46px] text-sm')"
     >
       {{ modelValue }}
     </div>
     <button
       type="button"
-      :class="
-        clsx(
-          'inline-flex items-center justify-center rounded-md border border-brand-300 bg-white text-brand-600 hover:bg-brand-50 disabled:opacity-40',
-          size === 'sm' ? 'h-8 w-8' : 'h-9 w-9'
-        )
-      "
+      :class="clsx('inline-flex items-center justify-center border-l border-ink-100 text-brand-700 hover:bg-brand-50 disabled:opacity-35', size === 'sm' ? 'h-8 w-7' : 'h-9 w-9')"
       :disabled="modelValue >= max"
-      @click="bump(step)"
       aria-label="增加"
+      @click="bump(step)"
     >
-      <Plus :size="16" />
+      <Plus :size="13" />
     </button>
   </div>
 </template>

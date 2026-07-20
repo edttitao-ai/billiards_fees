@@ -28,18 +28,21 @@ const attrs = useAttrs()
 
 const classes = computed(() =>
   clsx(
-    'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition-colors select-none',
-    'active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
+    'inline-flex select-none items-center justify-center gap-1.5 rounded-[11px] font-semibold transition-all duration-150',
+    'active:translate-y-px disabled:cursor-not-allowed disabled:opacity-45 disabled:active:translate-y-0',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 focus-visible:ring-offset-2',
     props.block && 'w-full',
     props.size === 'sm' && 'h-8 px-3 text-sm',
     props.size === 'md' && 'h-10 px-4 text-sm',
     props.size === 'lg' && 'h-12 px-5 text-base',
-    props.variant === 'primary' && 'bg-brand-500 text-white hover:bg-brand-600 shadow-soft',
+    props.variant === 'primary' &&
+      'border border-brand-700 bg-brand-700 text-white shadow-soft hover:border-brand-800 hover:bg-brand-800',
     props.variant === 'secondary' &&
-      'bg-white text-ink-700 border border-ink-200 hover:border-brand-300 hover:text-brand-600',
-    props.variant === 'ghost' && 'bg-transparent text-ink-500 hover:text-brand-600 hover:bg-brand-50',
-    props.variant === 'danger' && 'bg-white text-danger-500 border border-danger-500/40 hover:bg-red-50',
-    // 透传外部 class，方便个别位置覆盖尺寸/字号
+      'border border-ink-200 bg-[#fffefb] text-ink-700 shadow-[0_1px_1px_rgba(24,33,29,0.03)] hover:border-brand-300 hover:text-brand-700',
+    props.variant === 'ghost' &&
+      'border border-transparent bg-transparent text-ink-500 hover:bg-brand-50 hover:text-brand-700',
+    props.variant === 'danger' &&
+      'border border-danger-500/35 bg-[#fffefb] text-danger-500 hover:bg-red-50',
     (attrs.class as string | undefined) ?? ''
   )
 )

@@ -4,11 +4,7 @@ import AppButton from '@/components/base/AppButton.vue'
 import { useUIStore } from '@/stores/ui'
 import { useHistoryStore } from '@/stores/history'
 import { useBuddiesStore } from '@/stores/buddies'
-import {
-  exportToFile,
-  importFromFile,
-  pickJsonFile
-} from '@/utils/jsonStore'
+import { exportToFile, importFromFile, pickJsonFile } from '@/utils/jsonStore'
 
 const ui = useUIStore()
 const history = useHistoryStore()
@@ -27,7 +23,6 @@ async function handleExport() {
 async function handleImport() {
   const file = await pickJsonFile()
   if (!file) return
-  // 二次确认，避免误操作覆盖数据
   const ok = await ui.confirm({
     title: '导入账单数据',
     message: `将覆盖当前浏览器里的账单快照与球友库。\n文件：${file.name}\n确定继续？`,
@@ -37,7 +32,6 @@ async function handleImport() {
   if (!ok) return
   try {
     const { bills, buddies: buddyCount } = await importFromFile(file)
-    // 重新加载 store
     await Promise.all([history.loadAll(), buddies.loadAll({ seedIfEmpty: false })])
     ui.showToast(`已导入 ${bills} 条账单 / ${buddyCount} 位球友`, 'success')
   } catch (e: unknown) {
@@ -48,27 +42,28 @@ async function handleImport() {
 </script>
 
 <template>
-  <!-- 顶部一行两个动作按钮，移动端小尺寸 -->
-  <div class="flex items-center gap-1.5">
+  <div class="flex items-center gap-1">
     <AppButton
-      variant="secondary"
+      variant="ghost"
       size="sm"
+      class="h-9 w-9 px-0 lg:w-auto lg:px-2.5"
       title="导出账单与球友为 JSON 文件"
       aria-label="导出 JSON"
       @click="handleExport"
     >
-      <Download :size="14" />
-      <span>导出</span>
+      <Download :size="16" />
+      <span class="hidden text-xs lg:inline">数据导出</span>
     </AppButton>
     <AppButton
-      variant="secondary"
+      variant="ghost"
       size="sm"
+      class="h-9 w-9 px-0 lg:w-auto lg:px-2.5"
       title="从 JSON 文件导入账单与球友"
       aria-label="导入 JSON"
       @click="handleImport"
     >
-      <Upload :size="14" />
-      <span>导入</span>
+      <Upload :size="16" />
+      <span class="hidden text-xs lg:inline">数据导入</span>
     </AppButton>
   </div>
 </template>

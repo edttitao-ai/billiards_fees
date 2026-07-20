@@ -235,7 +235,7 @@ export const useSessionStore = defineStore('session', {
         name: name ?? `成员${this.participants.length + 1}`,
         avatarId: this.participants.length % 6,
         gender: 'male',
-        duration: this.totalDuration,
+        duration: this.tableDuration,
         personalFee: 0
       }
       this.participants.push(p)
@@ -250,7 +250,7 @@ export const useSessionStore = defineStore('session', {
       buddies: { id: string; name: string; avatarId: number }[]
     ) {
       const existNames = new Set(this.participants.map((p) => p.name))
-      const td = this.totalDuration
+      const tableDuration = this.tableDuration
       buddies.forEach((c) => {
         if (existNames.has(c.name)) return
         const p: Participant = {
@@ -259,7 +259,7 @@ export const useSessionStore = defineStore('session', {
           name: c.name,
           avatarId: c.avatarId,
           gender: 'male',
-          duration: td,
+          duration: tableDuration,
           personalFee: 0
         }
         this.participants.push(p)

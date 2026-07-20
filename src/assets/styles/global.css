@@ -6,43 +6,112 @@
   html,
   body,
   #app {
-    @apply h-full;
+    @apply min-h-full;
   }
+
   body {
-    @apply bg-ink-50 text-ink-900 antialiased;
+    @apply bg-ink-50 font-sans text-ink-900 antialiased;
+    background-color: #f2f5f6;
+    background-image:
+      radial-gradient(circle at 50% -12%, rgba(88, 117, 143, 0.15), transparent 32rem),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(242, 245, 246, 0) 18rem);
     font-feature-settings: 'cv11', 'ss01';
     -webkit-tap-highlight-color: transparent;
   }
+
   input,
   button,
   select,
   textarea {
     @apply font-sans;
   }
+
+  button,
+  [role='button'] {
+    -webkit-touch-callout: none;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-brand-900;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-300 ring-offset-2 ring-offset-ink-50;
+  }
 }
 
 @layer components {
-  .container-page {
-    @apply mx-auto w-full max-w-[960px] px-4 sm:px-6 pb-24 sm:pb-12;
+  .app-shell {
+    @apply min-h-screen;
   }
+
+  .container-page {
+    @apply mx-auto w-full max-w-[1080px] px-3 pb-28 sm:px-6 sm:pb-12;
+  }
+
+  .section-kicker {
+    color: #49677e;
+    font-family: Bahnschrift, 'DIN Alternate', 'Roboto Condensed', 'Arial Narrow', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .section-title {
+    color: #1c252b;
+    font-family: 'Arial Narrow', 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 24px;
+    letter-spacing: -0.02em;
+  }
+
+  .data-number {
+    font-family: Bahnschrift, 'DIN Alternate', 'Roboto Condensed', 'Arial Narrow', sans-serif;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  @media (min-width: 640px) {
+    .section-title {
+      font-size: 18px;
+      line-height: 26px;
+    }
+  }
+
   .num-input::-webkit-outer-spin-button,
   .num-input::-webkit-inner-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
+
   .num-input {
     -moz-appearance: textfield;
   }
 }
 
-/* 自定义滚动条：移动端隐藏 */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-thumb {
-  @apply bg-ink-200 rounded;
+  @apply rounded bg-ink-200;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-ink-300;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
