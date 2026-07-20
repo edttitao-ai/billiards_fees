@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Share2, Copy, Link2, ChevronUp, Camera } from 'lucide-vue-next'
+import {
+  Share2,
+  Copy,
+  Link2,
+  ChevronUp,
+  Camera,
+  Download,
+  ClipboardCopy
+} from 'lucide-vue-next'
 import AppModal from '@/components/base/AppModal.vue'
 import BillPoster from '@/components/business/BillPoster.vue'
 import { useUIStore } from '@/stores/ui'
@@ -9,6 +17,12 @@ import {
   buildShareUrl,
   copyToClipboard
 } from '@/utils/share'
+import {
+  captureNodeToPngBlob,
+  copyPngBlobToClipboard,
+  defaultPosterFilename,
+  downloadBlob
+} from '@/utils/posterImage'
 import {
   totalFeeFromPackages,
   totalDurationFromPackages,
@@ -49,16 +63,68 @@ async function handleShareLink() {
 }
 
 const previewOpen = ref(false)
+/** BillPoster 根节点的 DOM ref，用于 modern-screenshot 截图 */
+const posterRef = ref<HTMLElement | null>(null)
+/** 截图进行中：禁用按钮，避免重复触发 */
+const capturing = ref(false)
 
 function handleOpenPreview() {
   previewOpen.value = true
   close()
 }
 
-async function handleCopyLink() {
-  const url = buildShareUrl(props.session)
-  const ok = await copyToClipboard(url)
-  ui.showToast(ok ? '共享链接已复制' : '复制失败', ok ? 'success' : 'error')
+/** 处理 modal 内部元素以便挂在 ref 上 */
+function setPosterRef(el: Element | { $el?: Element } | null) {
+  if (el && '$el' in (el as Record<string, unknown>)) {
+    posterRef.value = ((el as { $el: HTMLElement }).$el as HTMLElement) ?? null
+  } else {
+    posterRef.value = (el as HTMLElement | null) ?? null
+  }
+}
+
+/** 「保存图片」：渲染为 PNG 并触发浏览器下载 */
+async function handleSaveImage() {
+  if (capturing.value) return
+  if (!posterRef.value) {
+    ui.showToast('海报未渲染，请稍候重试', 'warn')
+    return
+  }
+  capturing.value = true
+  try {
+    const blob = await captureNodeToPngBlob(posterRef.value)
+    downloadBlob(blob, defaultPosterFilename(props.session.title))
+    ui.showToast('图片已下载', 'success')
+  } catch (e) {
+    ui.showToast(
+      '生成图片失败：' + (e instanceof Error ? e.message : '未知错误'),
+      'error'
+    )
+  } finally {
+    capturing.value = false
+  }
+}
+
+/** 「复制图片」：复制 PNG 到剪贴板 */
+async function handleCopyImage() {
+  if (capturing.value) return
+  if (!posterRef.value) {
+    ui.showToast('海报未渲染，请稍候重试', 'warn')
+    return
+  }
+  capturing.value = true
+  try {
+    const blob = await captureNodeToPngBlob(posterRef.value)
+    const ok = await copyPngBlobToClipboard(blob)
+    if (ok) ui.showToast('图片已复制到剪贴板', 'success')
+    else ui.showToast('当前浏览器不支持复制图片，请用「保存图片」', 'warn')
+  } catch (e) {
+    ui.showToast(
+      '复制图片失败：' + (e instanceof Error ? e.message : '未知错误'),
+      'error'
+    )
+  } finally {
+    capturing.value = false
+  }
 }
 
 /** 给 BillPoster 用的派生数据，避免修改原 store 形态 */
@@ -133,14 +199,14 @@ const participantsForPoster = computed<Participant[]>(() =>
           <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-300/40 text-brand-700">
             <Camera :size="13" />
           </span>
-          <span class="flex-1 whitespace-nowrap">生成分享海报</span>
+          <span class="flex-1 whitespace-nowrap">生成账单图片</span>
         </button>
       </div>
     </transition>
 
     <div v-if="open" class="fixed inset-0 z-30" @click="close" />
 
-    <!-- 分享海报预览 Modal：展示 BillPoster，用户可直接截图发出 -->
+    <!-- 分享海报预览 Modal：展示 BillPoster，支持一键保存/复制图片 -->
     <AppModal
       v-model:open="previewOpen"
       title="分享海报预览"
@@ -148,7 +214,10 @@ const participantsForPoster = computed<Participant[]>(() =>
     >
       <div class="bg-ink-50 px-3 py-4 sm:px-5">
         <!-- PC 端：海报固定宽 480 居中；手机端：宽度 100% -->
-        <div class="mx-auto w-full max-w-[480px] overflow-hidden rounded-md border border-ink-200 bg-[#fcfdfd] shadow-card">
+        <div
+          class="mx-auto w-full max-w-[480px] overflow-hidden rounded-md border border-ink-200 bg-[#fcfdfd] shadow-card"
+          :ref="setPosterRef"
+        >
           <BillPoster
             :title="session.title"
             :total-fee="totalFeeFromSession"
@@ -161,7 +230,7 @@ const participantsForPoster = computed<Participant[]>(() =>
           />
         </div>
         <p class="mt-3 text-center text-xs text-ink-500">
-          长按或右键即可截图分享。海报内容与"收到的账单"页一致。
+          使用下方按钮可一键保存或复制为图片；长按或右键也可手动截图。
         </p>
       </div>
 
@@ -175,11 +244,21 @@ const participantsForPoster = computed<Participant[]>(() =>
         </button>
         <button
           type="button"
-          class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-brand-700 bg-brand-700 px-3 text-sm font-semibold text-white shadow-soft transition hover:border-brand-800 hover:bg-brand-800"
-          @click="handleCopyLink"
+          class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-brand-200 bg-brand-50 px-3 text-sm font-semibold text-brand-700 transition hover:border-brand-300 hover:bg-brand-100 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="capturing"
+          @click="handleCopyImage"
         >
-          <Copy :size="14" />
-          复制链接
+          <ClipboardCopy :size="14" />
+          复制图片
+        </button>
+        <button
+          type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-brand-700 bg-brand-700 px-3 text-sm font-semibold text-white shadow-soft transition hover:border-brand-800 hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="capturing"
+          @click="handleSaveImage"
+        >
+          <Download :size="14" />
+          保存图片
         </button>
       </template>
     </AppModal>
