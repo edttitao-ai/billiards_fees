@@ -3,7 +3,6 @@ import { computed, ref } from 'vue'
 import {
   Share2,
   Copy,
-  Link2,
   ChevronUp,
   Camera,
   Download,
@@ -14,7 +13,6 @@ import BillPoster from '@/components/business/BillPoster.vue'
 import { useUIStore } from '@/stores/ui'
 import {
   buildBillText,
-  buildShareUrl,
   copyToClipboard
 } from '@/utils/share'
 import {
@@ -36,7 +34,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'copied'): void
-  (e: 'link-copied'): void
 }>()
 
 const ui = useUIStore()
@@ -51,14 +48,6 @@ async function handleCopyText() {
   const ok = await copyToClipboard(text)
   ui.showToast(ok ? '账单文本已复制' : '复制失败，请手动操作', ok ? 'success' : 'error')
   emit('copied')
-  await close()
-}
-
-async function handleShareLink() {
-  const url = buildShareUrl(props.session)
-  const ok = await copyToClipboard(url)
-  ui.showToast(ok ? '共享链接已复制' : '复制失败', ok ? 'success' : 'error')
-  emit('link-copied')
   await close()
 }
 
@@ -180,16 +169,6 @@ const participantsForPoster = computed<Participant[]>(() =>
             <Copy :size="13" />
           </span>
           <span class="flex-1 whitespace-nowrap">导出为文本</span>
-        </button>
-        <button
-          type="button"
-          class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-ink-700 hover:bg-brand-50"
-          @click="handleShareLink"
-        >
-          <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
-            <Link2 :size="13" />
-          </span>
-          <span class="flex-1 whitespace-nowrap">复制共享链接</span>
         </button>
         <button
           type="button"
