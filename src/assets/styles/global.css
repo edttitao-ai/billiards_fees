@@ -89,6 +89,18 @@
 
   .num-input {
     -moz-appearance: textfield;
+    appearance: none;
+    /* 强制清掉浏览器原生聚焦痕迹，让父容器完全接管聚焦视觉 */
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .num-input:focus,
+  .num-input:focus-visible,
+  .num-input:focus-within {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 

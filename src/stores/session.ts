@@ -14,8 +14,8 @@ import {
 
 /** 预置套餐模板（用户可手填覆盖） */
 export const PACKAGE_TEMPLATES = [
-  { name: '1小时套餐', hours: 1, price: 60 },
-  { name: '2小时套餐', hours: 2, price: 100 },
+  { name: '1小时套餐', hours: 1, price: 21 },
+  { name: '2小时套餐', hours: 2, price: 35 },
   { name: '3小时套餐', hours: 3, price: 140 },
   { name: '4小时套餐', hours: 4, price: 180 }
 ]
@@ -25,8 +25,8 @@ const DEFAULT_DURATIONS: number[] = []
 
 function makeDefaultPackages(): BillPackage[] {
   return [
-    { id: uid(), name: '1小时套餐', hours: 1, price: 60, qty: 1 },
-    { id: uid(), name: '2小时套餐', hours: 2, price: 100, qty: 1 }
+    { id: uid(), name: '1小时套餐', hours: 1, price: 21, qty: 1 },
+    { id: uid(), name: '2小时套餐', hours: 2, price: 35, qty: 1 }
   ]
 }
 

@@ -84,23 +84,24 @@ async function removePackage(id: string, name: string) {
     </div>
 
     <div
-      class="hidden grid-cols-[minmax(160px,1fr)_84px_96px_112px_104px_32px] items-center gap-2 rounded-xl bg-ink-50 px-3 py-2 font-data text-[12px] font-semibold uppercase tracking-wider text-ink-400 sm:grid"
+      class="hidden items-center gap-3 rounded-xl bg-ink-50 px-3 py-2 font-data text-[12px] font-semibold uppercase tracking-wider text-ink-400 sm:flex"
     >
-      <div>套餐</div>
-      <div class="text-center">时长</div>
-      <div class="text-center">单价</div>
-      <div class="text-center">张数</div>
-      <div class="text-right">小计</div>
-      <div />
+      <div class="flex-1">套餐</div>
+      <div class="w-24 text-center">时长</div>
+      <div class="w-28 text-center">单价</div>
+      <div class="w-28 text-center">张数</div>
+      <div class="w-28 text-right">小计</div>
+      <div class="w-8" />
     </div>
 
     <ul v-if="packages.length" class="space-y-3 sm:space-y-0 sm:divide-y sm:divide-ink-100">
       <li
         v-for="(pkg, index) in packages"
         :key="pkg.id"
-        class="rounded-2xl border border-ink-100 bg-ink-50/45 p-3 sm:grid sm:grid-cols-[minmax(160px,1fr)_84px_96px_112px_104px_32px] sm:items-center sm:gap-2 sm:rounded-none sm:border-0 sm:bg-transparent sm:px-3 sm:py-3"
+        class="rounded-2xl border border-ink-100 bg-ink-50/45 p-3 sm:flex sm:items-center sm:gap-3 sm:rounded-none sm:border-0 sm:bg-transparent sm:px-3 sm:py-3"
       >
-        <div class="flex min-w-0 items-center">
+        <!-- 套餐列 -->
+        <div class="flex min-w-0 flex-1 items-center">
           <span
             class="mr-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-700 font-data text-[12px] font-bold text-white sm:hidden"
           >
@@ -111,6 +112,7 @@ async function removePackage(id: string, name: string) {
               :model-value="currentTplValue(pkg)"
               :options="templateOptions"
               size="sm"
+              class="!w-full"
               @change="(value) => onTemplateChange(pkg.id, value)"
             />
             <input
@@ -123,85 +125,92 @@ async function removePackage(id: string, name: string) {
           </div>
         </div>
 
-        <div class="mt-3 grid grid-cols-3 gap-2 sm:contents">
-          <div class="flex min-w-0 flex-col items-stretch sm:items-center sm:justify-center">
-            <span class="mb-1 text-[12px] font-medium text-ink-400 sm:hidden">时长</span>
-            <div class="flex min-w-0 items-center overflow-hidden rounded-[10px] border border-ink-200 bg-[#fffefb] sm:border-transparent sm:bg-transparent">
-              <input
-                :value="pkg.hours"
-                type="number"
-                step="0.5"
-                min="0"
-                class="num-input h-9 min-w-0 flex-1 bg-transparent text-center font-data text-sm font-bold tabular-nums focus:outline-none sm:hidden"
-                @input="(event) => session.setPackageHours(pkg.id, Number((event.target as HTMLInputElement).value))"
+        <!-- 时长 / 单价 / 张数：手机端横排 3 列，桌面端 contents 由父 li 接管 -->
+        <div class="mt-3 grid w-full grid-cols-3 gap-2 sm:contents sm:mt-0">
+        <!-- 时长列 -->
+        <div class="flex min-w-0 flex-col items-stretch sm:w-24 sm:items-center sm:justify-center">
+          <span class="mb-1 text-[12px] font-medium text-ink-400 sm:hidden">时长</span>
+          <div class="flex items-center overflow-hidden rounded-[10px] border border-ink-200 bg-[#fffefb] transition-colors focus-within:border-brand-500 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-300/45 sm:w-full sm:border-transparent sm:bg-transparent sm:focus-within:border-transparent sm:focus-within:bg-transparent sm:focus-within:ring-0">
+            <input
+              :value="pkg.hours"
+              type="number"
+              step="0.5"
+              min="0"
+              class="num-input h-9 min-w-0 flex-1 bg-transparent text-center font-data text-sm font-bold tabular-nums focus:outline-none sm:hidden"
+              @input="(event) => session.setPackageHours(pkg.id, Number((event.target as HTMLInputElement).value))"
+            />
+            <div class="hidden sm:block">
+              <NumberStepper
+                :model-value="pkg.hours"
+                :step="0.5"
+                :min="0"
+                :max="24"
+                size="sm"
+                @update:model-value="(value) => session.setPackageHours(pkg.id, value)"
               />
-              <div class="hidden sm:block">
-                <NumberStepper
-                  :model-value="pkg.hours"
-                  :step="0.5"
-                  :min="0"
-                  :max="24"
-                  size="sm"
-                  @update:model-value="(value) => session.setPackageHours(pkg.id, value)"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div class="flex min-w-0 flex-col items-stretch sm:items-center sm:justify-center">
-            <span class="mb-1 text-[12px] font-medium text-ink-400 sm:hidden">单价</span>
-            <div class="relative flex min-w-0 items-center rounded-[10px] border border-ink-200 bg-[#fffefb] pl-2 pr-1 sm:pl-4">
-              <span class="shrink-0 font-data text-xs font-semibold text-accent-600 sm:absolute sm:left-2">¥</span>
-              <input
-                :value="pkg.price"
-                type="number"
-                step="0.01"
-                min="0"
-                class="num-input h-9 min-w-0 flex-1 bg-transparent text-right font-data text-sm font-bold tabular-nums text-ink-900 focus:outline-none"
-                @input="(event) => session.setPackagePrice(pkg.id, Number((event.target as HTMLInputElement).value))"
-              />
-            </div>
-          </div>
-
-          <div class="flex min-w-0 flex-col items-stretch sm:items-center sm:justify-center">
-            <span class="mb-1 text-[12px] font-medium text-ink-400 sm:hidden">张数</span>
-            <div class="flex min-w-0 items-center overflow-hidden rounded-[10px] border border-ink-200 bg-[#fffefb]">
-              <button
-                type="button"
-                class="inline-flex h-9 w-7 shrink-0 items-center justify-center border-r border-ink-100 text-ink-500 hover:bg-brand-50 disabled:opacity-35 sm:w-8"
-                :disabled="pkg.qty <= 0"
-                aria-label="减少"
-                @click="session.setPackageQty(pkg.id, pkg.qty - 1)"
-              >
-                <Minus :size="13" />
-              </button>
-              <input
-                :value="pkg.qty"
-                type="number"
-                step="1"
-                min="0"
-                class="num-input h-9 min-w-0 flex-1 bg-transparent text-center font-data text-sm font-bold tabular-nums text-ink-900 focus:outline-none"
-                @input="(event) => session.setPackageQty(pkg.id, Number((event.target as HTMLInputElement).value))"
-              />
-              <button
-                type="button"
-                class="inline-flex h-9 w-7 shrink-0 items-center justify-center border-l border-ink-100 text-brand-700 hover:bg-brand-50 sm:w-8"
-                aria-label="增加"
-                @click="session.setPackageQty(pkg.id, pkg.qty + 1)"
-              >
-                <Plus :size="13" />
-              </button>
             </div>
           </div>
         </div>
 
-        <div class="mt-3 flex items-center justify-between border-t border-dashed border-ink-200 pt-2.5 sm:contents sm:border-0 sm:pt-0">
-          <div class="flex items-baseline gap-1 sm:block sm:text-right">
+        <!-- 单价列 -->
+        <div class="flex min-w-0 flex-col items-stretch sm:w-28 sm:items-center sm:justify-center">
+          <span class="mb-1 text-[12px] font-medium text-ink-400 sm:hidden">单价</span>
+          <div
+            class="group/price flex h-9 w-full items-center rounded-[10px] border border-ink-200 bg-[#fffefb] pl-2 pr-1 transition-all focus-within:border-brand-500 focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(88,117,143,0.22)]"
+          >
+            <span class="shrink-0 font-data text-xs font-semibold text-accent-600 transition-colors group-focus-within/price:text-brand-700">¥</span>
+            <input
+              :value="pkg.price"
+              type="number"
+              step="0.01"
+              min="0"
+              class="h-full min-w-0 flex-1 appearance-none rounded-[10px] border-0 bg-transparent text-right font-data text-sm font-bold tabular-nums text-ink-900 outline-none focus:outline-none focus:ring-0 focus:[box-shadow:none]"
+              @input="(event) => session.setPackagePrice(pkg.id, Number((event.target as HTMLInputElement).value))"
+            />
+          </div>
+        </div>
+
+        <!-- 张数列 -->
+        <div class="flex min-w-0 flex-col items-stretch sm:w-28 sm:items-center sm:justify-center">
+          <span class="mb-1 text-[12px] font-medium text-ink-400 sm:hidden">张数</span>
+          <div class="flex h-9 w-full items-center overflow-hidden rounded-[10px] border border-ink-200 bg-[#fffefb]">
+            <button
+              type="button"
+              class="inline-flex h-full w-7 shrink-0 items-center justify-center border-r border-ink-100 text-ink-500 hover:bg-brand-50 disabled:opacity-35 sm:w-8"
+              :disabled="pkg.qty <= 0"
+              aria-label="减少"
+              @click="session.setPackageQty(pkg.id, pkg.qty - 1)"
+            >
+              <Minus :size="13" />
+            </button>
+            <input
+              :value="pkg.qty"
+              type="number"
+              step="1"
+              min="0"
+              class="num-input h-full min-w-0 flex-1 bg-transparent text-center font-data text-sm font-bold tabular-nums text-ink-900 focus:outline-none"
+              @input="(event) => session.setPackageQty(pkg.id, Number((event.target as HTMLInputElement).value))"
+            />
+            <button
+              type="button"
+              class="inline-flex h-full w-7 shrink-0 items-center justify-center border-l border-ink-100 text-brand-700 hover:bg-brand-50 sm:w-8"
+              aria-label="增加"
+              @click="session.setPackageQty(pkg.id, pkg.qty + 1)"
+            >
+              <Plus :size="13" />
+            </button>
+          </div>
+        </div>
+        </div>
+
+        <!-- 小计 + 删除：手机端同一行（小计 label + 金额 + 删除按钮），桌面端拆成两列 -->
+        <div class="mt-3 flex w-full items-center justify-between border-t border-dashed border-ink-200 pt-2.5 sm:mt-0 sm:contents sm:border-0 sm:pt-0">
+          <div class="flex items-center gap-3 sm:w-28 sm:flex-col sm:items-end sm:justify-center sm:gap-0 sm:text-right">
             <span class="text-[12px] font-medium text-ink-400 sm:hidden">小计</span>
             <span class="data-number text-base font-bold text-accent-600">
               {{ formatCurrency(packageSubtotal(pkg)) }}
             </span>
-            <span class="text-[12px] text-ink-400 sm:block">{{ packageHours(pkg) }} h</span>
+            <span class="text-[12px] text-ink-400">{{ packageHours(pkg) }} h</span>
           </div>
           <button
             class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-red-50 hover:text-danger-500"

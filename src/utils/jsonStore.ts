@@ -129,11 +129,10 @@ export function exportToFile(): void {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-/** 解析用户上传的 JSON 文件，返回写入后的统计 */
-export async function importFromFile(file: File): Promise<{
-  bills: number
-  buddies: number
-}> {
+/** 解析用户上传的 JSON 文件，与现有数据按 id 合并（不覆盖已有条目） */
+export async function importFromFile(
+  file: File
+): Promise<{ billsAdded: number; billsSkipped: number; buddiesAdded: number; buddiesSkipped: number }> {
   const text = await file.text()
   let parsed: Partial<ExportShape>
   try {
@@ -144,13 +143,54 @@ export async function importFromFile(file: File): Promise<{
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('JSON 结构不合法')
   }
-  const bills: Snapshot[] = Array.isArray(parsed.bills) ? parsed.bills : []
-  const buddies: BallBuddy[] = Array.isArray(parsed.buddies) ? parsed.buddies : []
+  const incomingBills: Snapshot[] = Array.isArray(parsed.bills) ? parsed.bills : []
+  const incomingBuddies: BallBuddy[] = Array.isArray(parsed.buddies) ? parsed.buddies : []
 
-  if (bills.length) writeArray(SNAPSHOTS_KEY, bills)
-  if (buddies.length) writeArray(BUDDIES_KEY, buddies)
+  // 账单快照：按 id 合并，保留已有 id 的旧条目（不覆盖）
+  const currentBills = readArray<Snapshot>(SNAPSHOTS_KEY)
+  const billIdSet = new Set(currentBills.map((b) => b.id))
+  let billsAdded = 0
+  let billsSkipped = 0
+  const mergedBills = currentBills.slice()
+  for (const b of incomingBills) {
+    if (!b || typeof b.id !== 'string') {
+      billsSkipped++
+      continue
+    }
+    if (billIdSet.has(b.id)) {
+      billsSkipped++
+      continue
+    }
+    mergedBills.push(b)
+    billIdSet.add(b.id)
+    billsAdded++
+  }
+  if (incomingBills.length) writeArray(SNAPSHOTS_KEY, mergedBills)
 
-  return { bills: bills.length, buddies: buddies.length }
+  // 球友：按 id 合并；同时按 name 去重，重名视为已存在跳过
+  const currentBuddies = readArray<BallBuddy>(BUDDIES_KEY)
+  const buddyIdSet = new Set(currentBuddies.map((b) => b.id))
+  const buddyNameSet = new Set(currentBuddies.map((b) => b.name))
+  let buddiesAdded = 0
+  let buddiesSkipped = 0
+  const mergedBuddies = currentBuddies.slice()
+  for (const b of incomingBuddies) {
+    if (!b || typeof b.id !== 'string' || typeof b.name !== 'string') {
+      buddiesSkipped++
+      continue
+    }
+    if (buddyIdSet.has(b.id) || buddyNameSet.has(b.name)) {
+      buddiesSkipped++
+      continue
+    }
+    mergedBuddies.push(b)
+    buddyIdSet.add(b.id)
+    buddyNameSet.add(b.name)
+    buddiesAdded++
+  }
+  if (incomingBuddies.length) writeArray(BUDDIES_KEY, mergedBuddies)
+
+  return { billsAdded, billsSkipped, buddiesAdded, buddiesSkipped }
 }
 
 /** 触发一个隐藏的 <input type=file>，选完调 onPicked */

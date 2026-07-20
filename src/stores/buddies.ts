@@ -80,6 +80,24 @@ export const useBuddiesStore = defineStore('buddies', {
     async clearAll() {
       clearBuddies()
       this.list = []
+    },
+
+    /** 把传入的球友合并进当前列表（按 id 与 name 去重，不覆盖已有） */
+    async mergeMany(incoming: BallBuddy[]) {
+      const idSet = new Set(this.list.map((b) => b.id))
+      const nameSet = new Set(this.list.map((b) => b.name))
+      let added = 0
+      for (const b of incoming) {
+        if (!b || typeof b.id !== 'string' || typeof b.name !== 'string') continue
+        if (idSet.has(b.id) || nameSet.has(b.name)) continue
+        saveBuddy(b)
+        this.list.push(b)
+        idSet.add(b.id)
+        nameSet.add(b.name)
+        added++
+      }
+      this.list.sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1))
+      return added
     }
   }
 })
