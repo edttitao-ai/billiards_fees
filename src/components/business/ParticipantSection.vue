@@ -34,20 +34,18 @@ function cancelEdit() {
 }
 
 async function removeParticipant(id: string, name: string) {
-  if (session.participants.length <= 1) {
-    ui.showToast('至少保留一位参与人员', 'warn')
-    return
-  }
   const rest = session.participants.length - 1
   const ok = await ui.confirm({
     title: '删除参与人员',
-    message: `确认删除「${name}」？\n账单会按剩余 ${rest} 人重新分摊。`,
+    message: rest > 0
+      ? `确认删除「${name}」？\n账单会按剩余 ${rest} 人重新分摊。`
+      : `确认删除「${name}」？\n删除后当前账单将没有参与人员。`,
     confirmText: '删除',
     tone: 'danger'
   })
   if (!ok) return
   session.removeParticipant(id)
-  ui.showToast(`已删除 ${name}，账单已按 ${rest} 人重新分摊`, 'success')
+  ui.showToast(rest > 0 ? `已删除 ${name}，账单已按 ${rest} 人重新分摊` : `已删除 ${name}`, 'success')
 }
 
 function onBuddyConfirm(buddies: BallBuddy[]) {

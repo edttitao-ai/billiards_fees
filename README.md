@@ -2,6 +2,41 @@
 
 > 一个面向多人拼场场景的台费 + 时长自动分摊前端系统。
 
+## 项目预览
+
+### PC 端
+
+#### 首页
+
+![PC 端首页](./示例图片/PC/index.png)
+
+#### 历史账单
+
+![PC 端历史账单](./示例图片/PC/history.png)
+
+#### 账单详情
+
+![PC 端账单详情](./示例图片/PC/history_detail.png)
+
+### 手机端
+
+<table>
+  <thead>
+    <tr>
+      <th>首页</th>
+      <th>历史账单</th>
+      <th>账单详情</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><img src="./示例图片/Phone/index.png" alt="手机端首页" /></td>
+      <td><img src="./示例图片/Phone/history.png" alt="手机端历史账单" /></td>
+      <td><img src="./示例图片/Phone/history_detail.png" alt="手机端账单详情" /></td>
+    </tr>
+  </tbody>
+</table>
+
 ## 技术栈
 
 - TypeScript + Vite + Vue 3
