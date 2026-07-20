@@ -3,22 +3,16 @@
  * 共享账单页面：
  *   1. 从 URL ?p=<base64> 解析出 SharedBill
  *   2. 复用 BillPoster 组件渲染一份"可读账单"
- *   3. 提供"下载图片 / 复制链接 / 返回首页"按钮
+ *   3. 提供"复制链接 / 返回首页"按钮
  */
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Download, Copy, AlertTriangle } from 'lucide-vue-next'
+import { ArrowLeft, Copy, AlertTriangle } from 'lucide-vue-next'
 import AppButton from '@/components/base/AppButton.vue'
 import AppCard from '@/components/base/AppCard.vue'
 import BillPoster from '@/components/business/BillPoster.vue'
 import { useUIStore } from '@/stores/ui'
-import {
-  parseShareBill,
-  downloadBlob,
-  posterFilename,
-  type SharedBill
-} from '@/utils/share'
-import { sessionToPngBlob } from '@/utils/posterRenderer'
+import { parseShareBill, type SharedBill } from '@/utils/share'
 import type { BillPackage, Participant } from '@/types'
 
 const router = useRouter()
@@ -59,40 +53,6 @@ const posterData = computed(() => {
     participants
   }
 })
-
-async function downloadPng() {
-  if (!bill.value) return
-  ui.showToast('正在生成图片…', 'info')
-  try {
-    // 海报组件要的是 SessionState，这里把 SharedBill 伪造成最小 session
-    const blob = await sessionToPngBlob({
-      title: bill.value.t,
-      packages: bill.value.p.map((p, i) => ({
-        id: `p-${i}`,
-        name: p.n,
-        hours: p.h,
-        price: p.pr,
-        qty: p.q
-      })),
-      participants: bill.value.ps.map((p, i) => ({
-        id: `ps-${i}`,
-        index: p.i,
-        name: p.n,
-        avatarId: 0,
-        gender: 'male',
-        duration: p.d,
-        personalFee: 0
-      })),
-      tableCount: bill.value.tc,
-      tableManual: false
-    })
-    downloadBlob(blob, posterFilename(bill.value.t))
-    ui.showToast('图片已下载', 'success')
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : String(e)
-    ui.showToast(`图片生成失败：${msg}`, 'error')
-  }
-}
 
 async function copyLink() {
   try {
@@ -144,11 +104,7 @@ function back() {
       </AppCard>
 
       <div class="mx-auto flex max-w-[520px] flex-wrap gap-2">
-        <AppButton variant="primary" size="md" @click="downloadPng">
-          <Download :size="16" />
-          下载图片
-        </AppButton>
-        <AppButton variant="secondary" size="md" @click="copyLink">
+        <AppButton variant="primary" size="md" @click="copyLink">
           <Copy :size="16" />
           复制链接
         </AppButton>

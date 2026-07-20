@@ -1,16 +1,20 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Share2, Copy, Image, Link2, ChevronUp } from 'lucide-vue-next'
+import { Share2, Copy, Link2, ChevronUp, Camera } from 'lucide-vue-next'
+import AppModal from '@/components/base/AppModal.vue'
+import BillPoster from '@/components/business/BillPoster.vue'
 import { useUIStore } from '@/stores/ui'
 import {
   buildBillText,
   buildShareUrl,
-  downloadBlob,
-  posterFilename,
   copyToClipboard
 } from '@/utils/share'
-import { sessionToPngBlob } from '@/utils/posterRenderer'
-import type { SessionState } from '@/types'
+import {
+  totalFeeFromPackages,
+  totalDurationFromPackages,
+  avgFee
+} from '@/utils/calc'
+import type { SessionState, BillPackage, Participant } from '@/types'
 
 const props = defineProps<{
   session: SessionState
@@ -18,13 +22,11 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'copied'): void
-  (e: 'image-saved'): void
   (e: 'link-copied'): void
 }>()
 
 const ui = useUIStore()
 const open = ref(false)
-const canShareFiles = computed(() => typeof navigator !== 'undefined' && 'share' in navigator)
 
 async function close() {
   open.value = false
@@ -38,34 +40,6 @@ async function handleCopyText() {
   await close()
 }
 
-async function handleImage() {
-  await close()
-  ui.showToast('正在生成图片…', 'info')
-  let blob: Blob | null = null
-  const filename = posterFilename(props.session.title)
-  try {
-    blob = await sessionToPngBlob(props.session)
-    if (
-      typeof navigator !== 'undefined' &&
-      typeof navigator.canShare === 'function' &&
-      typeof navigator.share === 'function' &&
-      navigator.canShare({ files: [new File([blob], filename, { type: 'image/png' })] })
-    ) {
-      const file = new File([blob], filename, { type: 'image/png' })
-      await navigator.share({ files: [file], title: props.session.title })
-      emit('image-saved')
-      return
-    }
-  } catch {
-    // 不支持系统分享时降级为下载
-  }
-  if (blob) {
-    downloadBlob(blob, filename)
-    ui.showToast('图片已下载', 'success')
-    emit('image-saved')
-  }
-}
-
 async function handleShareLink() {
   const url = buildShareUrl(props.session)
   const ok = await copyToClipboard(url)
@@ -73,6 +47,40 @@ async function handleShareLink() {
   emit('link-copied')
   await close()
 }
+
+const previewOpen = ref(false)
+
+function handleOpenPreview() {
+  previewOpen.value = true
+  close()
+}
+
+async function handleCopyLink() {
+  const url = buildShareUrl(props.session)
+  const ok = await copyToClipboard(url)
+  ui.showToast(ok ? '共享链接已复制' : '复制失败', ok ? 'success' : 'error')
+}
+
+/** 给 BillPoster 用的派生数据，避免修改原 store 形态 */
+const totalFeeFromSession = computed(() =>
+  totalFeeFromPackages(props.session.packages)
+)
+const totalDurationFromSession = computed(() =>
+  totalDurationFromPackages(props.session.packages)
+)
+const avgFeeFromSession = computed(() =>
+  avgFee(totalFeeFromSession.value, props.session.participants)
+)
+const tableDurationFromSession = computed(() => {
+  const tc = props.session.tableCount || 1
+  return tc > 0 ? totalDurationFromSession.value / tc : totalDurationFromSession.value
+})
+const packagesForPoster = computed<BillPackage[]>(() =>
+  props.session.packages.map((p) => ({ ...p }))
+)
+const participantsForPoster = computed<Participant[]>(() =>
+  props.session.participants.map((p) => ({ ...p }))
+)
 </script>
 
 <template>
@@ -110,19 +118,6 @@ async function handleShareLink() {
         <button
           type="button"
           class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-ink-700 hover:bg-brand-50"
-          @click="handleImage"
-        >
-          <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-50 text-accent-600">
-            <Image :size="13" />
-          </span>
-          <span class="min-w-0 flex-1 whitespace-nowrap">生成账单图片</span>
-          <span class="shrink-0 whitespace-nowrap text-[12px] text-ink-400">
-            {{ canShareFiles ? '可分享' : '下载' }}
-          </span>
-        </button>
-        <button
-          type="button"
-          class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-ink-700 hover:bg-brand-50"
           @click="handleShareLink"
         >
           <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
@@ -130,10 +125,64 @@ async function handleShareLink() {
           </span>
           <span class="flex-1 whitespace-nowrap">复制共享链接</span>
         </button>
+        <button
+          type="button"
+          class="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-xs font-medium text-ink-700 hover:bg-brand-50"
+          @click="handleOpenPreview"
+        >
+          <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-300/40 text-brand-700">
+            <Camera :size="13" />
+          </span>
+          <span class="flex-1 whitespace-nowrap">生成分享海报</span>
+        </button>
       </div>
     </transition>
 
     <div v-if="open" class="fixed inset-0 z-30" @click="close" />
+
+    <!-- 分享海报预览 Modal：展示 BillPoster，用户可直接截图发出 -->
+    <AppModal
+      v-model:open="previewOpen"
+      title="分享海报预览"
+      max-width-class="sm:max-w-[640px]"
+    >
+      <div class="bg-ink-50 px-3 py-4 sm:px-5">
+        <!-- PC 端：海报固定宽 480 居中；手机端：宽度 100% -->
+        <div class="mx-auto w-full max-w-[480px] overflow-hidden rounded-md border border-ink-200 bg-[#fcfdfd] shadow-card">
+          <BillPoster
+            :title="session.title"
+            :total-fee="totalFeeFromSession"
+            :avg-fee="avgFeeFromSession"
+            :total-duration="totalDurationFromSession"
+            :table-count="session.tableCount || 1"
+            :table-duration="tableDurationFromSession"
+            :packages="packagesForPoster"
+            :participants="participantsForPoster"
+          />
+        </div>
+        <p class="mt-3 text-center text-xs text-ink-500">
+          长按或右键即可截图分享。海报内容与"收到的账单"页一致。
+        </p>
+      </div>
+
+      <template #footer>
+        <button
+          type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-ink-200 bg-[#fffefb] px-3 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700"
+          @click="previewOpen = false"
+        >
+          关闭
+        </button>
+        <button
+          type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-brand-700 bg-brand-700 px-3 text-sm font-semibold text-white shadow-soft transition hover:border-brand-800 hover:bg-brand-800"
+          @click="handleCopyLink"
+        >
+          <Copy :size="14" />
+          复制链接
+        </button>
+      </template>
+    </AppModal>
   </div>
 </template>
 

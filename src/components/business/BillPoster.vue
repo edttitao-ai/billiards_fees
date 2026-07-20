@@ -31,7 +31,9 @@ const nowText = computed(() => {
 <template>
   <div
     style="
-      width: 480px;
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
       box-sizing: border-box;
       padding: 16px;
       background: #eaf0f4;

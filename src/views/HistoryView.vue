@@ -1,9 +1,20 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Download, Receipt, Square, Upload, Users, Trash2 } from 'lucide-vue-next'
+import {
+  ArrowLeft,
+  Download,
+  Link2,
+  Receipt,
+  Square,
+  Upload,
+  Users,
+  Trash2,
+  Copy
+} from 'lucide-vue-next'
 import EmptyState from '@/components/base/EmptyState.vue'
 import ToastHost from '@/components/layout/ToastHost.vue'
+import AppModal from '@/components/base/AppModal.vue'
 import { useHistoryStore } from '@/stores/history'
 import { useBuddiesStore } from '@/stores/buddies'
 import { useUIStore } from '@/stores/ui'
@@ -13,6 +24,7 @@ import {
   importFromFile,
   pickJsonFile
 } from '@/utils/jsonStore'
+import { buildShareUrl } from '@/utils/share'
 import type { BallBuddy, Snapshot } from '@/types'
 
 const history = useHistoryStore()
@@ -68,7 +80,43 @@ async function exportJson() {
   }
 }
 
-/** 从 JSON 文件读入并合并到现有数据 */
+/** 在 Modal 中预览「最新一条」账单的共享链接 */
+const shareModalOpen = ref(false)
+
+/**
+ * 默认导出的对象：按时间倒序排列，最新一条排第一。
+ * 单链接 URL 长度受限于 base64；多账单会超长，所以这里默认只导出最新一条。
+ */
+const latestSnap = computed<Snapshot | undefined>(() => history.list[0])
+
+/** 构造好的共享链接；空列表/解析失败时为 '' */
+const shareUrl = computed<string>(() => {
+  const s = latestSnap.value
+  if (!s) return ''
+  return buildShareUrl(s.session)
+})
+
+function openSharePreview() {
+  if (!shareUrl.value) {
+    ui.showToast('当前没有可导出的账单', 'info')
+    return
+  }
+  shareModalOpen.value = true
+}
+
+async function copyShareLink() {
+  if (!shareUrl.value) {
+    ui.showToast('没有可复制的链接', 'info')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    ui.showToast('链接已复制', 'success')
+  } catch {
+    ui.showToast('复制失败，请手动复制地址栏', 'error')
+  }
+}
+
 async function importJson() {
   const file = await pickJsonFile()
   if (!file) return
@@ -145,6 +193,16 @@ async function importJson() {
         </button>
         <button
           type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-ink-200 bg-[#fffefb] px-3 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="!shareUrl"
+          :title="shareUrl ? '' : '当前没有可导出的账单'"
+          @click="openSharePreview"
+        >
+          <Link2 :size="14" />
+          导出共享链接
+        </button>
+        <button
+          type="button"
           class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-brand-700 bg-brand-700 px-3 text-sm font-semibold text-white shadow-soft transition hover:border-brand-800 hover:bg-brand-800"
           @click="exportJson"
         >
@@ -197,5 +255,50 @@ async function importJson() {
     </ul>
 
     <ToastHost />
+
+    <!-- 共享链接预览：以 iframe 嵌入 /share?p=…，与点开链接看到的页面一致 -->
+    <AppModal
+      v-model:open="shareModalOpen"
+      :title="latestSnap ? `共享链接预览：${latestSnap.title}` : '共享链接预览'"
+      max-width-class="sm:max-w-[640px]"
+    >
+      <div class="bg-ink-50 px-3 py-3 sm:px-4">
+        <div class="overflow-hidden rounded-md border border-ink-200 bg-white shadow-card">
+          <iframe
+            v-if="shareUrl"
+            :src="shareUrl"
+            class="block h-[70vh] w-full"
+            referrerpolicy="no-referrer"
+            loading="lazy"
+            title="共享账单预览"
+          />
+          <div v-else class="flex h-[40vh] items-center justify-center text-sm text-ink-400">
+            暂无可分享的账单
+          </div>
+        </div>
+        <p class="mt-2 break-all text-xs text-ink-500">
+          {{ shareUrl || '—' }}
+        </p>
+      </div>
+
+      <template #footer>
+        <button
+          type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-brand-700 bg-brand-700 px-3 text-sm font-semibold text-white shadow-soft transition hover:border-brand-800 hover:bg-brand-800 disabled:cursor-not-allowed disabled:opacity-50"
+          :disabled="!shareUrl"
+          @click="copyShareLink"
+        >
+          <Copy :size="14" />
+          复制链接
+        </button>
+        <button
+          type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-ink-200 bg-[#fffefb] px-3 text-sm font-medium text-ink-700 transition hover:border-brand-300 hover:text-brand-700"
+          @click="shareModalOpen = false"
+        >
+          关闭
+        </button>
+      </template>
+    </AppModal>
   </div>
 </template>
