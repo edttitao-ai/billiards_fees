@@ -72,7 +72,7 @@ async function removePackage(id: string, name: string) {
         <div class="mt-0.5 flex items-center gap-2">
           <Tickets :size="17" class="text-brand-600" />
           <h2 class="section-title">套餐列表</h2>
-          <span class="rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-semibold text-ink-500">
+          <span class="rounded-full bg-ink-100 px-2 py-0.5 text-[12px] font-semibold text-ink-500">
             {{ packages.length }} 项
           </span>
         </div>
@@ -84,7 +84,7 @@ async function removePackage(id: string, name: string) {
     </div>
 
     <div
-      class="hidden grid-cols-[minmax(160px,1fr)_84px_96px_112px_104px_32px] items-center gap-2 rounded-xl bg-ink-50 px-3 py-2 font-data text-[10px] font-semibold uppercase tracking-wider text-ink-400 sm:grid"
+      class="hidden grid-cols-[minmax(160px,1fr)_84px_96px_112px_104px_32px] items-center gap-2 rounded-xl bg-ink-50 px-3 py-2 font-data text-[12px] font-semibold uppercase tracking-wider text-ink-400 sm:grid"
     >
       <div>套餐</div>
       <div class="text-center">时长</div>
@@ -102,7 +102,7 @@ async function removePackage(id: string, name: string) {
       >
         <div class="flex min-w-0 items-center">
           <span
-            class="mr-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-700 font-data text-[9px] font-bold text-white sm:hidden"
+            class="mr-2 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-700 font-data text-[12px] font-bold text-white sm:hidden"
           >
             P{{ index + 1 }}
           </span>
@@ -125,7 +125,7 @@ async function removePackage(id: string, name: string) {
 
         <div class="mt-3 grid grid-cols-3 gap-2 sm:contents">
           <div class="flex min-w-0 flex-col items-stretch sm:items-center sm:justify-center">
-            <span class="mb-1 text-[10px] font-medium text-ink-400 sm:hidden">时长</span>
+            <span class="mb-1 text-[12px] font-medium text-ink-400 sm:hidden">时长</span>
             <div class="flex min-w-0 items-center overflow-hidden rounded-[10px] border border-ink-200 bg-[#fffefb] sm:border-transparent sm:bg-transparent">
               <input
                 :value="pkg.hours"
@@ -149,7 +149,7 @@ async function removePackage(id: string, name: string) {
           </div>
 
           <div class="flex min-w-0 flex-col items-stretch sm:items-center sm:justify-center">
-            <span class="mb-1 text-[10px] font-medium text-ink-400 sm:hidden">单价</span>
+            <span class="mb-1 text-[12px] font-medium text-ink-400 sm:hidden">单价</span>
             <div class="relative flex min-w-0 items-center rounded-[10px] border border-ink-200 bg-[#fffefb] pl-2 pr-1 sm:pl-4">
               <span class="shrink-0 font-data text-xs font-semibold text-accent-600 sm:absolute sm:left-2">¥</span>
               <input
@@ -164,7 +164,7 @@ async function removePackage(id: string, name: string) {
           </div>
 
           <div class="flex min-w-0 flex-col items-stretch sm:items-center sm:justify-center">
-            <span class="mb-1 text-[10px] font-medium text-ink-400 sm:hidden">张数</span>
+            <span class="mb-1 text-[12px] font-medium text-ink-400 sm:hidden">张数</span>
             <div class="flex min-w-0 items-center overflow-hidden rounded-[10px] border border-ink-200 bg-[#fffefb]">
               <button
                 type="button"
@@ -197,11 +197,11 @@ async function removePackage(id: string, name: string) {
 
         <div class="mt-3 flex items-center justify-between border-t border-dashed border-ink-200 pt-2.5 sm:contents sm:border-0 sm:pt-0">
           <div class="flex items-baseline gap-1 sm:block sm:text-right">
-            <span class="text-[10px] font-medium text-ink-400 sm:hidden">小计</span>
+            <span class="text-[12px] font-medium text-ink-400 sm:hidden">小计</span>
             <span class="data-number text-base font-bold text-accent-600">
               {{ formatCurrency(packageSubtotal(pkg)) }}
             </span>
-            <span class="text-[10px] text-ink-400 sm:block">{{ packageHours(pkg) }} h</span>
+            <span class="text-[12px] text-ink-400 sm:block">{{ packageHours(pkg) }} h</span>
           </div>
           <button
             class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-ink-400 hover:bg-red-50 hover:text-danger-500"
@@ -216,11 +216,11 @@ async function removePackage(id: string, name: string) {
 
     <div class="mt-3 grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-end sm:gap-3">
       <div class="rounded-xl border border-ink-100 bg-ink-50 px-3 py-2 sm:min-w-32">
-        <div class="text-[10px] font-medium text-ink-400">累计时长</div>
+        <div class="text-[12px] font-medium text-ink-400">累计时长</div>
         <div class="data-number mt-0.5 text-sm font-bold text-ink-700">{{ session.totalDuration }} 小时</div>
       </div>
       <div class="rounded-xl border border-accent-200 bg-accent-50 px-3 py-2 sm:min-w-36">
-        <div class="text-[10px] font-medium text-accent-700">套餐总额</div>
+        <div class="text-[12px] font-medium text-accent-700">套餐总额</div>
         <div class="data-number mt-0.5 text-base font-bold text-accent-700">{{ formatCurrency(session.totalFee) }}</div>
       </div>
     </div>

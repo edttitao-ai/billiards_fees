@@ -52,19 +52,19 @@
   .section-kicker {
     color: #49677e;
     font-family: Bahnschrift, 'DIN Alternate', 'Roboto Condensed', 'Arial Narrow', sans-serif;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     line-height: 1.2;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
   }
 
   .section-title {
     color: #1c252b;
     font-family: 'Arial Narrow', 'HarmonyOS Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
-    line-height: 24px;
+    line-height: 25px;
     letter-spacing: -0.02em;
   }
 
@@ -76,8 +76,8 @@
 
   @media (min-width: 640px) {
     .section-title {
-      font-size: 18px;
-      line-height: 26px;
+      font-size: 19px;
+      line-height: 27px;
     }
   }
 
@@ -91,6 +91,8 @@
     -moz-appearance: textfield;
   }
 }
+
+/* 暗色主题语义映射已移除 */
 
 ::-webkit-scrollbar {
   width: 6px;

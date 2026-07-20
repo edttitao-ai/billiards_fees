@@ -70,14 +70,14 @@ export default {
         data: ['Bahnschrift', 'DIN Alternate', 'Roboto Condensed', 'Arial Narrow', 'sans-serif']
       },
       fontSize: {
-        xs: ['13px', '18px'],
-        sm: ['15px', '22px'],
-        base: ['16px', '24px'],
-        lg: ['18px', '26px'],
-        xl: ['20px', '28px'],
-        '2xl': ['24px', '31px'],
-        '3xl': ['32px', '38px'],
-        '4xl': ['40px', '44px']
+        xs: ['12px', '18px'],
+        sm: ['14px', '20px'],
+        base: ['15px', '22px'],
+        lg: ['17px', '25px'],
+        xl: ['19px', '27px'],
+        '2xl': ['22px', '30px'],
+        '3xl': ['28px', '36px'],
+        '4xl': ['36px', '42px']
       },
       borderRadius: {
         sm: '7px',

@@ -40,7 +40,7 @@ const valueClass = computed(() =>
       )
     "
   >
-    <div class="text-[11px] font-medium tracking-wide text-ink-500">{{ label }}</div>
+    <div class="text-[13px] font-medium tracking-wide text-ink-500">{{ label }}</div>
     <div :class="valueClass" class="mt-1">
       {{ value }}<span v-if="unit" class="ml-1 text-xs font-normal text-ink-400">{{ unit }}</span>
     </div>

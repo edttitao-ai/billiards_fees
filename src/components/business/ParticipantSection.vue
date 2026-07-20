@@ -64,7 +64,7 @@ function onBuddyConfirm(buddies: BallBuddy[]) {
         <div class="mt-0.5 flex items-center gap-2">
           <Users :size="17" class="text-brand-600" />
           <h2 class="section-title">参与人员</h2>
-          <span class="rounded-full bg-ink-100 px-2 py-0.5 text-[10px] font-semibold text-ink-500">
+          <span class="rounded-full bg-ink-100 px-2 py-0.5 text-[12px] font-semibold text-ink-500">
             {{ session.participants.length }} 人
           </span>
         </div>
@@ -76,7 +76,7 @@ function onBuddyConfirm(buddies: BallBuddy[]) {
     </div>
 
     <div
-      class="hidden grid-cols-[28px_1fr_160px_96px_32px] items-center gap-2 border-b border-ink-100 px-2 pb-2 font-data text-[10px] font-semibold uppercase tracking-wider text-ink-400 sm:grid"
+      class="hidden grid-cols-[28px_1fr_160px_96px_32px] items-center gap-2 border-b border-ink-100 px-2 pb-2 font-data text-[12px] font-semibold uppercase tracking-wider text-ink-400 sm:grid"
     >
       <div>#</div>
       <div>姓名</div>
@@ -103,7 +103,7 @@ function onBuddyConfirm(buddies: BallBuddy[]) {
         class="grid grid-cols-[24px_minmax(0,1fr)_auto_auto_auto] items-center gap-2 px-1 py-2.5 sm:grid-cols-[28px_1fr_160px_96px_32px] sm:px-2"
       >
         <div
-          class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[#fffefb] bg-brand-700 font-data text-[10px] font-bold text-white shadow-sm"
+          class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-[#fffefb] bg-brand-700 font-data text-[12px] font-bold text-white shadow-sm"
         >
           {{ participant.index }}
         </div>
@@ -152,7 +152,7 @@ function onBuddyConfirm(buddies: BallBuddy[]) {
       </li>
     </ul>
 
-    <div class="mt-3 flex items-start gap-2 rounded-xl border border-ink-100 bg-ink-50/70 px-3 py-2.5 text-[11px] leading-relaxed text-ink-500">
+    <div class="mt-3 flex items-start gap-2 rounded-xl border border-ink-100 bg-ink-50/70 px-3 py-2.5 text-[13px] leading-relaxed text-ink-500">
       <Info :size="13" class="mt-0.5 shrink-0 text-brand-500" />
       <span>修改打球时长后，每个人的费用会立即重新计算。</span>
     </div>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ArrowLeft, HelpCircle, History } from 'lucide-vue-next'
+import { ArrowLeft, History } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
-import DataIOActions from '@/components/layout/DataIOActions.vue'
 
 interface Props {
   title: string
@@ -13,7 +12,7 @@ interface Props {
 withDefaults(defineProps<Props>(), {
   showBack: false,
   showHistory: true,
-  showGuide: true
+  showGuide: false
 })
 
 const router = useRouter()
@@ -21,9 +20,6 @@ const router = useRouter()
 function goBack() {
   if (window.history.length > 1) router.back()
   else router.push('/')
-}
-function goGuide() {
-  router.push('/guide')
 }
 function goHistory() {
   router.push('/history')
@@ -54,22 +50,12 @@ function goHistory() {
       <h1 class="truncate font-display text-sm font-bold tracking-[-0.02em] text-ink-900 sm:text-base">
         {{ title }}
       </h1>
-      <div class="hidden font-data text-[9px] font-semibold uppercase tracking-[0.22em] text-brand-600 sm:block">
+      <div class="hidden font-data text-[12px] font-semibold uppercase tracking-[0.16em] text-brand-600 sm:block">
         Billiards split sheet
       </div>
     </div>
 
     <div class="flex shrink-0 items-center gap-1">
-      <DataIOActions />
-      <button
-        v-if="showGuide"
-        class="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-500 transition hover:bg-white hover:text-brand-700 sm:w-auto sm:gap-1.5 sm:px-2.5"
-        aria-label="使用说明"
-        @click="goGuide"
-      >
-        <HelpCircle :size="17" />
-        <span class="hidden text-xs font-medium xl:inline">说明</span>
-      </button>
       <button
         v-if="showHistory"
         class="inline-flex h-9 w-9 items-center justify-center rounded-full text-ink-500 transition hover:bg-white hover:text-brand-700 sm:w-auto sm:gap-1.5 sm:px-2.5"
@@ -77,7 +63,7 @@ function goHistory() {
         @click="goHistory"
       >
         <History :size="17" />
-        <span class="hidden text-xs font-medium xl:inline">历史</span>
+        <span class="hidden text-xs font-medium sm:inline">历史</span>
       </button>
     </div>
   </header>

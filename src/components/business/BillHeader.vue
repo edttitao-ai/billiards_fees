@@ -45,7 +45,7 @@ function save() {
     <div class="relative p-5 sm:p-7">
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0 flex-1">
-          <div class="mb-2 flex items-center gap-2 font-data text-[10px] font-semibold uppercase tracking-[0.22em] text-accent-300">
+          <div class="mb-2 flex items-center gap-2 font-data text-[12px] font-semibold uppercase tracking-[0.2em] text-accent-300">
             <ReceiptText :size="14" />
             当前记分单
           </div>
@@ -62,7 +62,7 @@ function save() {
             {{ session.title }}
           </h2>
 
-          <div class="mt-4 flex flex-wrap items-center gap-2 text-[11px] font-medium text-white/68">
+          <div class="mt-4 flex flex-wrap items-center gap-2 text-[13px] font-medium text-white/68">
             <span class="rounded-full border border-white/10 bg-white/[0.07] px-2.5 py-1">
               {{ packageCount }} 张套餐
             </span>

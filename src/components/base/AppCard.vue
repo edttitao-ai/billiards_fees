@@ -17,9 +17,12 @@ const props = withDefaults(defineProps<Props>(), {
 const classes = computed(() =>
   clsx(
     'relative rounded-[20px] border transition-shadow duration-200',
-    props.variant === 'default' && 'border-ink-200/80 bg-[#fffefb] shadow-card',
-    props.variant === 'soft' && 'border-brand-100 bg-brand-50/80',
-    props.variant === 'felt' && 'overflow-hidden border-brand-700 bg-brand-800 text-white shadow-felt',
+    props.variant === 'default' &&
+      'border-ink-200/80 bg-[#fffefb] shadow-card',
+    props.variant === 'soft' &&
+      'border-brand-100 bg-brand-50/80',
+    props.variant === 'felt' &&
+      'overflow-hidden border-brand-700 bg-brand-800 text-white shadow-felt',
     props.padding === 'none' && 'p-0',
     props.padding === 'sm' && 'p-3',
     props.padding === 'md' && 'p-4 sm:p-5',

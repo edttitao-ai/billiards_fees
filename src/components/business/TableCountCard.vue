@@ -59,7 +59,7 @@ function resetLink() {
     <div class="rounded-2xl border border-brand-100 bg-brand-50/70 p-3.5">
       <div class="flex items-end justify-between gap-3">
         <div>
-          <div class="text-[11px] font-medium text-ink-500">当前使用</div>
+          <div class="text-[12px] font-medium text-ink-500">当前使用</div>
           <div class="mt-1 data-number text-2xl font-bold text-brand-800">
             {{ tableCount }}<span class="ml-1 text-sm font-medium text-brand-600">桌</span>
           </div>
@@ -104,7 +104,7 @@ function resetLink() {
       </div>
     </div>
 
-    <div class="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-ink-500">
+    <div class="mt-3 flex items-start gap-2 text-[13px] leading-relaxed text-ink-500">
       <Info :size="13" class="mt-0.5 shrink-0 text-brand-500" />
       <span>
         {{

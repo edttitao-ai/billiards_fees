@@ -21,7 +21,7 @@ const participantCount = () => session.participants.length
           <h2 class="section-title">分摊结果</h2>
         </div>
       </div>
-      <span class="rounded-full bg-ink-100 px-2.5 py-1 text-[11px] font-medium text-ink-500">
+      <span class="rounded-full bg-ink-100 px-2.5 py-1 text-[12px] font-medium text-ink-500">
         {{ packageCount() }} 张套餐
       </span>
     </div>
@@ -33,7 +33,7 @@ const participantCount = () => session.participants.length
         <div class="relative mt-2 data-number text-3xl font-bold text-brand-800 sm:text-4xl">
           {{ formatCurrency(session.totalFee) }}
         </div>
-        <div class="relative mt-3 text-[11px] text-ink-500">
+        <div class="relative mt-3 text-[13px] text-ink-500">
           由 {{ participantCount() }} 位球友按实际时长分摊
         </div>
       </div>

@@ -94,7 +94,7 @@ async function handleShareLink() {
         v-if="open"
         class="absolute bottom-full right-0 z-40 mb-2 w-60 overflow-hidden rounded-2xl border border-ink-200 bg-[#fffefb] p-1.5 shadow-floating"
       >
-        <div class="px-2 pb-1 pt-0.5 font-data text-[9px] font-semibold uppercase tracking-[0.18em] text-ink-400">
+        <div class="px-2 pb-1 pt-0.5 font-data text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-400">
           选择导出方式
         </div>
         <button
@@ -116,7 +116,7 @@ async function handleShareLink() {
             <Image :size="13" />
           </span>
           <span class="min-w-0 flex-1 whitespace-nowrap">生成账单图片</span>
-          <span class="shrink-0 whitespace-nowrap text-[10px] text-ink-400">
+          <span class="shrink-0 whitespace-nowrap text-[12px] text-ink-400">
             {{ canShareFiles ? '可分享' : '下载' }}
           </span>
         </button>
