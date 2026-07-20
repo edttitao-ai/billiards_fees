@@ -29,7 +29,7 @@ onMounted(() => {
 const sessionView = () => ({
   title: session.title,
   packages: session.packages.map((p) => ({ ...p })),
-  participants: [...session.participants],
+  participants: session.participants.map((p) => ({ ...p })),
   tableCount: session.tableCount,
   tableManual: !!session.tableManual
 })
@@ -72,7 +72,7 @@ async function saveSnapshot(silent = false): Promise<boolean> {
     if (!silent) ui.showToast('账单已保存到历史记录', 'success')
     return true
   } catch {
-    ui.showToast('保存失败，浏览器可能禁用了本地存储', 'error')
+    ui.showToast('保存失败，浏览器可能禁用了 IndexedDB', 'error')
     return false
   }
 }

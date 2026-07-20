@@ -157,24 +157,13 @@ export const useSessionStore = defineStore('session', {
         price: t.price,
         qty: 1
       })
-      if (!this.tableManual) {
-        this.tableCount = this.packages.reduce(
-          (s, x) => s + (x.qty || 0),
-          0
-        )
-      }
+      // 套餐不再联动桌数，桌数由用户单独设置
       this.syncParticipantsToTotalDuration()
     },
 
     removePackage(id: string) {
       this.packages = this.packages.filter((p) => p.id !== id)
-      if (!this.tableManual) {
-        const totalTables = this.packages.reduce(
-          (s, x) => s + (x.qty || 0),
-          0
-        )
-        if (totalTables > 0) this.tableCount = totalTables
-      }
+      // 套餐不再联动桌数
       this.syncParticipantsToTotalDuration()
     },
 
@@ -205,14 +194,7 @@ export const useSessionStore = defineStore('session', {
       if (!p) return
       if (!Number.isFinite(qty) || qty < 0) return
       p.qty = Math.max(0, Math.floor(qty))
-      // 没手动调过桌数 → 套餐张数联动到桌数（取所有套餐总张数）
-      if (!this.tableManual) {
-        const totalTables = this.packages.reduce(
-          (s, x) => s + (x.qty || 0),
-          0
-        )
-        if (totalTables > 0) this.tableCount = totalTables
-      }
+      // 套餐张数不再联动桌数
       this.syncParticipantsToTotalDuration()
     },
 

@@ -1,20 +1,23 @@
 /**
- * 浏览器端 JSON 存储。
+ * 浏览器端 IndexedDB 存储。
  *
- * 为什么不用 IndexedDB：库数据量小（几十~几百条快照 + 几十球友），
- * 用 localStorage 一个 JSON 字符串就能搞定，调试时可读、可手动改。
+ * 人员列表和历史账单分别存入独立对象仓库；首次打开时会把旧版
+ * localStorage 数据合并进 IndexedDB，迁移成功后删除旧数据。
  *
  * 顶层导出：
  *  - CRUD：list / get / save / remove / clear
- *  - 文件：exportToFile / importFromFile  （用户主动点"导出/导入"按钮）
- *
- * 注意：所有 store 同步行为都改用这个，db.ts 已废弃。
+ *  - 文件：exportToFile / importFromFile（用户主动点“导出/导入”按钮）
  */
 
 import type { BallBuddy, Snapshot } from '@/types'
 
-const SNAPSHOTS_KEY = 'bs:snapshots:v1'
-const BUDDIES_KEY = 'bs:buddies:v1'
+const DB_NAME = 'billiards-splitter'
+const DB_VERSION = 1
+const SNAPSHOTS_STORE = 'snapshots'
+const BUDDIES_STORE = 'buddies'
+
+const LEGACY_SNAPSHOTS_KEY = 'bs:snapshots:v1'
+const LEGACY_BUDDIES_KEY = 'bs:buddies:v1'
 
 /** 应用整体导出的形态 */
 export interface ExportShape {
@@ -28,79 +31,202 @@ export interface ExportShape {
   buddies: BallBuddy[]
 }
 
-// ---------- localStorage helpers ----------
+type StoreName = typeof SNAPSHOTS_STORE | typeof BUDDIES_STORE
 
-function safeParse<T>(raw: string | null, fallback: T): T {
-  if (!raw) return fallback
+let databasePromise: Promise<IDBDatabase> | undefined
+let readyDatabasePromise: Promise<IDBDatabase> | undefined
+
+function requestToPromise<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB 操作失败'))
+  })
+}
+
+function transactionToPromise(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve()
+    transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB 事务失败'))
+    transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB 事务已中止'))
+  })
+}
+
+function openDatabase(): Promise<IDBDatabase> {
+  if (databasePromise) return databasePromise
+
+  databasePromise = new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      reject(new Error('当前浏览器不支持 IndexedDB'))
+      return
+    }
+
+    const request = indexedDB.open(DB_NAME, DB_VERSION)
+
+    request.onupgradeneeded = () => {
+      const db = request.result
+      if (!db.objectStoreNames.contains(SNAPSHOTS_STORE)) {
+        db.createObjectStore(SNAPSHOTS_STORE, { keyPath: 'id' })
+      }
+      if (!db.objectStoreNames.contains(BUDDIES_STORE)) {
+        db.createObjectStore(BUDDIES_STORE, { keyPath: 'id' })
+      }
+    }
+
+    request.onsuccess = () => {
+      const db = request.result
+      db.onversionchange = () => db.close()
+      resolve(db)
+    }
+    request.onerror = () => reject(request.error ?? new Error('无法打开 IndexedDB'))
+    request.onblocked = () => reject(new Error('IndexedDB 升级被其他页面阻塞，请关闭其他页面后重试'))
+  })
+
+  return databasePromise
+}
+
+async function getAllFromDatabase<T>(db: IDBDatabase, storeName: StoreName): Promise<T[]> {
+  const transaction = db.transaction(storeName, 'readonly')
+  const done = transactionToPromise(transaction)
+  const records = await requestToPromise(transaction.objectStore(storeName).getAll()) as T[]
+  await done
+  return records
+}
+
+function readLegacyArray<T>(key: string): { exists: boolean; records: T[] } {
+  if (typeof localStorage === 'undefined') return { exists: false, records: [] }
+
   try {
-    return JSON.parse(raw) as T
+    const raw = localStorage.getItem(key)
+    if (raw === null) return { exists: false, records: [] }
+    const parsed = JSON.parse(raw)
+    return { exists: true, records: Array.isArray(parsed) ? parsed as T[] : [] }
   } catch {
-    return fallback
+    return { exists: true, records: [] }
   }
 }
 
-function readArray<T>(key: string): T[] {
-  if (typeof localStorage === 'undefined') return []
-  return safeParse<T[]>(localStorage.getItem(key), [])
+async function migrateLegacyData(db: IDBDatabase): Promise<void> {
+  const legacySnapshots = readLegacyArray<Snapshot>(LEGACY_SNAPSHOTS_KEY)
+  const legacyBuddies = readLegacyArray<BallBuddy>(LEGACY_BUDDIES_KEY)
+
+  if (!legacySnapshots.exists && !legacyBuddies.exists) return
+
+  const [currentSnapshots, currentBuddies] = await Promise.all([
+    getAllFromDatabase<Snapshot>(db, SNAPSHOTS_STORE),
+    getAllFromDatabase<BallBuddy>(db, BUDDIES_STORE)
+  ])
+  const snapshotIds = new Set(currentSnapshots.map((item) => item.id))
+  const buddyIds = new Set(currentBuddies.map((item) => item.id))
+  const snapshotsToAdd = legacySnapshots.records.filter((item) => {
+    if (!item || typeof item.id !== 'string' || snapshotIds.has(item.id)) return false
+    snapshotIds.add(item.id)
+    return true
+  })
+  const buddiesToAdd = legacyBuddies.records.filter((item) => {
+    if (!item || typeof item.id !== 'string' || buddyIds.has(item.id)) return false
+    buddyIds.add(item.id)
+    return true
+  })
+
+  if (snapshotsToAdd.length || buddiesToAdd.length) {
+    const transaction = db.transaction([SNAPSHOTS_STORE, BUDDIES_STORE], 'readwrite')
+    const done = transactionToPromise(transaction)
+    const snapshotsStore = transaction.objectStore(SNAPSHOTS_STORE)
+    const buddiesStore = transaction.objectStore(BUDDIES_STORE)
+    snapshotsToAdd.forEach((item) => snapshotsStore.add(item))
+    buddiesToAdd.forEach((item) => buddiesStore.add(item))
+    await done
+  }
+
+  try {
+    if (legacySnapshots.exists) localStorage.removeItem(LEGACY_SNAPSHOTS_KEY)
+    if (legacyBuddies.exists) localStorage.removeItem(LEGACY_BUDDIES_KEY)
+  } catch {
+    // 数据已成功迁移；无法清理旧存储不影响 IndexedDB 使用。
+  }
 }
 
-function writeArray<T>(key: string, list: T[]): void {
-  if (typeof localStorage === 'undefined') return
-  localStorage.setItem(key, JSON.stringify(list))
+function getReadyDatabase(): Promise<IDBDatabase> {
+  if (!readyDatabasePromise) {
+    readyDatabasePromise = openDatabase().then(async (db) => {
+      await migrateLegacyData(db)
+      return db
+    })
+  }
+  return readyDatabasePromise
+}
+
+async function putRecord<T>(storeName: StoreName, record: T): Promise<void> {
+  const db = await getReadyDatabase()
+  const transaction = db.transaction(storeName, 'readwrite')
+  const done = transactionToPromise(transaction)
+  transaction.objectStore(storeName).put(record)
+  await done
+}
+
+async function deleteRecord(storeName: StoreName, id: string): Promise<void> {
+  const db = await getReadyDatabase()
+  const transaction = db.transaction(storeName, 'readwrite')
+  const done = transactionToPromise(transaction)
+  transaction.objectStore(storeName).delete(id)
+  await done
+}
+
+async function clearStore(storeName: StoreName): Promise<void> {
+  const db = await getReadyDatabase()
+  const transaction = db.transaction(storeName, 'readwrite')
+  const done = transactionToPromise(transaction)
+  transaction.objectStore(storeName).clear()
+  await done
 }
 
 // ---------- Snapshots ----------
 
-export function listSnapshots(): Snapshot[] {
-  return readArray<Snapshot>(SNAPSHOTS_KEY).sort((a, b) =>
-    a.createdAt < b.createdAt ? 1 : -1
-  )
+export async function listSnapshots(): Promise<Snapshot[]> {
+  const db = await getReadyDatabase()
+  const list = await getAllFromDatabase<Snapshot>(db, SNAPSHOTS_STORE)
+  return list.sort((a, b) => a.createdAt < b.createdAt ? 1 : -1)
 }
 
-export function getSnapshot(id: string): Snapshot | undefined {
-  return readArray<Snapshot>(SNAPSHOTS_KEY).find((s) => s.id === id)
+export async function getSnapshot(id: string): Promise<Snapshot | undefined> {
+  const db = await getReadyDatabase()
+  const transaction = db.transaction(SNAPSHOTS_STORE, 'readonly')
+  const done = transactionToPromise(transaction)
+  const result = await requestToPromise(transaction.objectStore(SNAPSHOTS_STORE).get(id)) as Snapshot | undefined
+  await done
+  return result
 }
 
-export function saveSnapshot(s: Snapshot): void {
-  const list = readArray<Snapshot>(SNAPSHOTS_KEY)
-  const idx = list.findIndex((x) => x.id === s.id)
-  if (idx >= 0) list[idx] = s
-  else list.push(s)
-  writeArray(SNAPSHOTS_KEY, list)
+export function saveSnapshot(snapshot: Snapshot): Promise<void> {
+  return putRecord(SNAPSHOTS_STORE, snapshot)
 }
 
-export function removeSnapshot(id: string): void {
-  const list = readArray<Snapshot>(SNAPSHOTS_KEY).filter((s) => s.id !== id)
-  writeArray(SNAPSHOTS_KEY, list)
+export function removeSnapshot(id: string): Promise<void> {
+  return deleteRecord(SNAPSHOTS_STORE, id)
 }
 
-export function clearSnapshots(): void {
-  writeArray(SNAPSHOTS_KEY, [])
+export function clearSnapshots(): Promise<void> {
+  return clearStore(SNAPSHOTS_STORE)
 }
 
 // ---------- Buddies ----------
 
-export function listBuddies(): BallBuddy[] {
-  return readArray<BallBuddy>(BUDDIES_KEY).sort((a, b) =>
-    a.createdAt < b.createdAt ? -1 : 1
-  )
+export async function listBuddies(): Promise<BallBuddy[]> {
+  const db = await getReadyDatabase()
+  const list = await getAllFromDatabase<BallBuddy>(db, BUDDIES_STORE)
+  return list.sort((a, b) => a.createdAt < b.createdAt ? -1 : 1)
 }
 
-export function saveBuddy(b: BallBuddy): void {
-  const list = readArray<BallBuddy>(BUDDIES_KEY)
-  const idx = list.findIndex((x) => x.id === b.id)
-  if (idx >= 0) list[idx] = b
-  else list.push(b)
-  writeArray(BUDDIES_KEY, list)
+export function saveBuddy(buddy: BallBuddy): Promise<void> {
+  return putRecord(BUDDIES_STORE, buddy)
 }
 
-export function removeBuddy(id: string): void {
-  const list = readArray<BallBuddy>(BUDDIES_KEY).filter((b) => b.id !== id)
-  writeArray(BUDDIES_KEY, list)
+export function removeBuddy(id: string): Promise<void> {
+  return deleteRecord(BUDDIES_STORE, id)
 }
 
-export function clearBuddies(): void {
-  writeArray(BUDDIES_KEY, [])
+export function clearBuddies(): Promise<void> {
+  return clearStore(BUDDIES_STORE)
 }
 
 // ---------- 文件导入 / 导出 ----------
@@ -108,12 +234,13 @@ export function clearBuddies(): void {
 const FILE_NAME = 'billiards-data.json'
 
 /** 把当前所有数据打包，触发浏览器下载 */
-export function exportToFile(): void {
+export async function exportToFile(): Promise<void> {
+  const [bills, buddies] = await Promise.all([listSnapshots(), listBuddies()])
   const shape: ExportShape = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    bills: listSnapshots(),
-    buddies: listBuddies()
+    bills,
+    buddies
   }
   const blob = new Blob([JSON.stringify(shape, null, 2)], {
     type: 'application/json;charset=utf-8'
@@ -125,7 +252,6 @@ export function exportToFile(): void {
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
-  // 给浏览器一点点时间完成下载再 revoke
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
@@ -143,54 +269,60 @@ export async function importFromFile(
   if (!parsed || typeof parsed !== 'object') {
     throw new Error('JSON 结构不合法')
   }
+
   const incomingBills: Snapshot[] = Array.isArray(parsed.bills) ? parsed.bills : []
   const incomingBuddies: BallBuddy[] = Array.isArray(parsed.buddies) ? parsed.buddies : []
+  const [currentBills, currentBuddies] = await Promise.all([listSnapshots(), listBuddies()])
 
-  // 账单快照：按 id 合并，保留已有 id 的旧条目（不覆盖）
-  const currentBills = readArray<Snapshot>(SNAPSHOTS_KEY)
-  const billIdSet = new Set(currentBills.map((b) => b.id))
-  let billsAdded = 0
+  const billIdSet = new Set(currentBills.map((bill) => bill.id))
+  const billsToAdd: Snapshot[] = []
   let billsSkipped = 0
-  const mergedBills = currentBills.slice()
-  for (const b of incomingBills) {
-    if (!b || typeof b.id !== 'string') {
+  for (const bill of incomingBills) {
+    if (!bill || typeof bill.id !== 'string' || billIdSet.has(bill.id)) {
       billsSkipped++
       continue
     }
-    if (billIdSet.has(b.id)) {
-      billsSkipped++
-      continue
-    }
-    mergedBills.push(b)
-    billIdSet.add(b.id)
-    billsAdded++
+    billIdSet.add(bill.id)
+    billsToAdd.push(bill)
   }
-  if (incomingBills.length) writeArray(SNAPSHOTS_KEY, mergedBills)
 
-  // 球友：按 id 合并；同时按 name 去重，重名视为已存在跳过
-  const currentBuddies = readArray<BallBuddy>(BUDDIES_KEY)
-  const buddyIdSet = new Set(currentBuddies.map((b) => b.id))
-  const buddyNameSet = new Set(currentBuddies.map((b) => b.name))
-  let buddiesAdded = 0
+  const buddyIdSet = new Set(currentBuddies.map((buddy) => buddy.id))
+  const buddyNameSet = new Set(currentBuddies.map((buddy) => buddy.name))
+  const buddiesToAdd: BallBuddy[] = []
   let buddiesSkipped = 0
-  const mergedBuddies = currentBuddies.slice()
-  for (const b of incomingBuddies) {
-    if (!b || typeof b.id !== 'string' || typeof b.name !== 'string') {
+  for (const buddy of incomingBuddies) {
+    if (
+      !buddy ||
+      typeof buddy.id !== 'string' ||
+      typeof buddy.name !== 'string' ||
+      buddyIdSet.has(buddy.id) ||
+      buddyNameSet.has(buddy.name)
+    ) {
       buddiesSkipped++
       continue
     }
-    if (buddyIdSet.has(b.id) || buddyNameSet.has(b.name)) {
-      buddiesSkipped++
-      continue
-    }
-    mergedBuddies.push(b)
-    buddyIdSet.add(b.id)
-    buddyNameSet.add(b.name)
-    buddiesAdded++
+    buddyIdSet.add(buddy.id)
+    buddyNameSet.add(buddy.name)
+    buddiesToAdd.push(buddy)
   }
-  if (incomingBuddies.length) writeArray(BUDDIES_KEY, mergedBuddies)
 
-  return { billsAdded, billsSkipped, buddiesAdded, buddiesSkipped }
+  if (billsToAdd.length || buddiesToAdd.length) {
+    const db = await getReadyDatabase()
+    const transaction = db.transaction([SNAPSHOTS_STORE, BUDDIES_STORE], 'readwrite')
+    const done = transactionToPromise(transaction)
+    const snapshotsStore = transaction.objectStore(SNAPSHOTS_STORE)
+    const buddiesStore = transaction.objectStore(BUDDIES_STORE)
+    billsToAdd.forEach((item) => snapshotsStore.add(item))
+    buddiesToAdd.forEach((item) => buddiesStore.add(item))
+    await done
+  }
+
+  return {
+    billsAdded: billsToAdd.length,
+    billsSkipped,
+    buddiesAdded: buddiesToAdd.length,
+    buddiesSkipped
+  }
 }
 
 /** 触发一个隐藏的 <input type=file>，选完调 onPicked */
@@ -201,9 +333,9 @@ export function pickJsonFile(): Promise<File | null> {
     input.accept = 'application/json,.json'
     input.style.display = 'none'
     input.addEventListener('change', () => {
-      const f = input.files && input.files[0] ? input.files[0] : null
+      const file = input.files && input.files[0] ? input.files[0] : null
       document.body.removeChild(input)
-      resolve(f)
+      resolve(file)
     })
     document.body.appendChild(input)
     input.click()

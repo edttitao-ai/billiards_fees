@@ -8,10 +8,12 @@ import {
 } from '@/utils/jsonStore'
 
 const DEFAULT_BUDDIES: Omit<BallBuddy, 'createdAt'>[] = [
-  { id: 'c-demo-1', name: '小涛', avatarId: 0 },
-  { id: 'c-demo-2', name: '阿杰', avatarId: 1 },
-  { id: 'c-demo-3', name: '阿朗', avatarId: 2 },
-  { id: 'c-demo-4', name: '大伟', avatarId: 3 }
+  { id: 'c-demo-2', name: '彬哥', avatarId: 1 },
+  { id: 'c-demo-3', name: '星哥', avatarId: 2 },
+  { id: 'c-demo-4', name: '星姐', avatarId: 3 },
+  { id: 'c-demo-5', name: 'QC', avatarId: 4 },
+  { id: 'c-demo-6', name: '叶哥', avatarId: 5 },
+  { id: 'c-demo-7', name: '古哥', avatarId: 6 }
 ]
 
 export const useBuddiesStore = defineStore('buddies', {
@@ -23,18 +25,18 @@ export const useBuddiesStore = defineStore('buddies', {
   actions: {
     async loadAll(opts: { seedIfEmpty?: boolean } = {}) {
       try {
-        let all = listBuddies()
+        let all = await listBuddies()
         if (all.length === 0 && opts.seedIfEmpty !== false) {
           // 第一次进页面，丢几条示例球友
           const now = Date.now()
           for (let i = 0; i < DEFAULT_BUDDIES.length; i++) {
             const seed = DEFAULT_BUDDIES[i]
-            saveBuddy({
+            await saveBuddy({
               ...seed,
               createdAt: new Date(now + i).toISOString()
             })
           }
-          all = listBuddies()
+          all = await listBuddies()
         }
         this.list = all
       } catch {
@@ -58,7 +60,7 @@ export const useBuddiesStore = defineStore('buddies', {
         avatarId: this.list.length % 6,
         createdAt: new Date().toISOString()
       }
-      saveBuddy(buddy)
+      await saveBuddy(buddy)
       this.list.push(buddy)
       return buddy
     },
@@ -73,12 +75,12 @@ export const useBuddiesStore = defineStore('buddies', {
     },
 
     async remove(id: string) {
-      removeBuddy(id)
+      await removeBuddy(id)
       this.list = this.list.filter((c) => c.id !== id)
     },
 
     async clearAll() {
-      clearBuddies()
+      await clearBuddies()
       this.list = []
     },
 
@@ -90,7 +92,7 @@ export const useBuddiesStore = defineStore('buddies', {
       for (const b of incoming) {
         if (!b || typeof b.id !== 'string' || typeof b.name !== 'string') continue
         if (idSet.has(b.id) || nameSet.has(b.name)) continue
-        saveBuddy(b)
+        await saveBuddy(b)
         this.list.push(b)
         idSet.add(b.id)
         nameSet.add(b.name)

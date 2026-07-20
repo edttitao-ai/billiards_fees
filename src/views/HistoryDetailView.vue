@@ -94,8 +94,9 @@ function loadToHome() {
         <div class="text-base font-semibold text-ink-900">{{ snap.title }}</div>
         <div class="mt-0.5 text-xs text-ink-400">{{ formatDateTime(snap.createdAt) }}</div>
 
-        <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
           <Stat label="总时长" :value="formatNumber(totalDur, 1)" unit="小时" />
+          <Stat label="台桌数" :value="String(snap.session.tableCount || 1)" unit="桌" />
           <Stat label="套餐数" :value="String(packageCount)" unit="张" />
           <Stat label="总台费" :value="formatCurrency(snap.totalFee)" highlight tone="brand" />
           <Stat label="人均费用" :value="formatCurrency(snap.avgFee)" />

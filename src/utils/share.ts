@@ -46,6 +46,7 @@ export function buildBillText(session: SessionState): string {
   })
   lines.push('---')
   lines.push(`套餐总时长：${formatNumber(totalDur, 1)} 小时`)
+  lines.push(`台桌数：${session.tableCount || 1} 桌`)
   lines.push(`总台费：${formatCurrency(totalFee)}`)
   lines.push(`打满者人均：${formatCurrency(fullFee)}（共 ${fullCount} 人打满）`)
   lines.push(`占用人时合计：${formatNumber(sumDur, 1)} h（早走者按 di × 总台费 / Σ在场 时长）`)

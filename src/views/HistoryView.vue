@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeft, Download, Receipt, Upload, Users, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, Download, Receipt, Square, Upload, Users, Trash2 } from 'lucide-vue-next'
 import EmptyState from '@/components/base/EmptyState.vue'
 import ToastHost from '@/components/layout/ToastHost.vue'
 import { useHistoryStore } from '@/stores/history'
@@ -55,13 +55,13 @@ async function clearAll() {
 }
 
 /** 把当前所有数据打包成 JSON 文件下载 */
-function exportJson() {
+async function exportJson() {
   if (!history.list.length && !buddies.list.length) {
     ui.showToast('暂无可导出的数据', 'info')
     return
   }
   try {
-    exportToFile()
+    await exportToFile()
     ui.showToast('已导出 billiards-data.json', 'success')
   } catch (e) {
     ui.showToast('导出失败：' + (e instanceof Error ? e.message : '未知错误'), 'error')
@@ -82,9 +82,11 @@ async function importJson() {
       return
     }
     const result = await importFromFile(file)
-    // 同步到内存中的 store
-    if (result.billsAdded) await history.mergeMany(bills)
-    if (result.buddiesAdded) await buddies.mergeMany(buddiesIn)
+    // IndexedDB 导入完成后重新加载内存中的 store
+    await Promise.all([
+      history.loadAll(),
+      buddies.loadAll({ seedIfEmpty: false })
+    ])
     const msg =
       `导入完成：新增账单 ${result.billsAdded}` +
       (result.billsSkipped ? `（跳过 ${result.billsSkipped}）` : '') +
@@ -170,11 +172,15 @@ async function importJson() {
         </div>
         <div class="min-w-0 flex-1">
           <div class="truncate text-sm font-semibold text-ink-900">{{ s.title }}</div>
-          <div class="mt-0.5 flex items-center gap-2 text-xs text-ink-400">
+          <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-ink-400">
             <span class="font-semibold text-brand-600">{{ formatCurrency(s.totalFee) }}</span>
             <span class="inline-flex items-center gap-0.5">
               <Users :size="12" />
               {{ s.session.participants.length }} 人
+            </span>
+            <span class="inline-flex items-center gap-0.5">
+              <Square :size="12" />
+              {{ s.session.tableCount || 1 }} 桌
             </span>
             <span>·</span>
             <span>{{ formatDateTime(s.createdAt) }}</span>

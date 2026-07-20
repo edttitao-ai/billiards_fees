@@ -68,30 +68,53 @@ export async function renderPosterToBlob(
   data: PosterData,
   component: Component = BillPoster
 ): Promise<Blob> {
-  // 1. 离屏容器
+  // 1. 离屏容器：放到屏幕外但保持完整布局上下文
   const host = document.createElement('div')
   host.style.position = 'fixed'
-  host.style.left = '-99999px'
+  host.style.left = '0'
   host.style.top = '0'
+  host.style.zIndex = '-1'
+  host.style.opacity = '0'
   host.style.pointerEvents = 'none'
+  host.style.width = '480px'
   document.body.appendChild(host)
 
   // 2. 挂组件
   const app = createApp({ render: () => h(component, data) })
   const vm = app.mount(host)
 
-  // 3. 等一帧让 svg/img 完整绘制
+  // 3. 等待：先让 Vue 完成首次渲染，再等字体加载，再多帧确保布局稳定
+  await new Promise<void>((resolve) => setTimeout(resolve, 50))
+  if (document.fonts && typeof document.fonts.ready?.then === 'function') {
+    try {
+      await document.fonts.ready
+    } catch {
+      /* ignore */
+    }
+  }
+  await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
   await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
 
   try {
     const target = host.firstElementChild as HTMLElement | null
     if (!target) throw new Error('海报组件未挂载')
 
+    // 4. 读取目标真实尺寸，告知 html2canvas 完整范围，避免截不全
+    const rect = target.getBoundingClientRect()
+    const width = Math.max(1, Math.ceil(rect.width))
+    const height = Math.max(1, Math.ceil(rect.height))
+
     const canvas = await html2canvas(target, {
-      backgroundColor: '#ECFDF5',
+      backgroundColor: '#EAF0F4',
       scale: 2, // 高清
       logging: false,
-      useCORS: true
+      useCORS: true,
+      width,
+      height,
+      windowWidth: Math.max(width, document.documentElement.clientWidth),
+      windowHeight: Math.max(height, document.documentElement.clientHeight),
+      scrollX: 0,
+      scrollY: 0
     })
 
     return await new Promise<Blob>((resolve, reject) => {

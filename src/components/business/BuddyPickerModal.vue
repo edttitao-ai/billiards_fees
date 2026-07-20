@@ -163,15 +163,29 @@ const selectedCount = computed(() => selected.value.size)
           添加
         </AppButton>
       </div>
-      <div class="flex items-center justify-between text-xs text-ink-500">
+      <div class="flex items-center justify-between gap-2 text-xs text-ink-500">
         <span class="flex items-center gap-1">
           <UsersRound :size="14" class="text-brand-600" />
           共 {{ buddies.list.length }} 位球友，已选 {{ selectedCount }} 人
         </span>
-        <div class="flex gap-2 text-brand-600">
-          <button class="hover:underline" @click="selectAllVisible">全选</button>
-          <span class="text-ink-300">·</span>
-          <button class="hover:underline" @click="inverseVisible">反选</button>
+        <div class="flex items-center gap-1.5">
+          <button
+            type="button"
+            class="inline-flex h-7 items-center gap-1 rounded-md border border-ink-200 bg-white px-2.5 text-xs font-medium text-ink-700 transition hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="!list.length"
+            @click="selectAllVisible"
+          >
+            <Check :size="12" />
+            全选
+          </button>
+          <button
+            type="button"
+            class="inline-flex h-7 items-center gap-1 rounded-md border border-ink-200 bg-white px-2.5 text-xs font-medium text-ink-700 transition hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+            :disabled="!list.length"
+            @click="inverseVisible"
+          >
+            反选
+          </button>
         </div>
       </div>
     </div>
