@@ -48,6 +48,21 @@ async function removeParticipant(id: string, name: string) {
   ui.showToast(rest > 0 ? `已删除 ${name}，账单已按 ${rest} 人重新分摊` : `已删除 ${name}`, 'success')
 }
 
+/** 「全部删除」：清空所有参与人员 */
+async function clearAllParticipants() {
+  const count = session.participants.length
+  if (count === 0) return
+  const ok = await ui.confirm({
+    title: '清空参与人员',
+    message: `确认清空全部 ${count} 位参与人员？\n此操作不会删除已保存的账单快照。`,
+    confirmText: '全部删除',
+    tone: 'danger'
+  })
+  if (!ok) return
+  session.clearParticipants()
+  ui.showToast(`已清空 ${count} 位参与人员`, 'success')
+}
+
 function onBuddyConfirm(buddies: BallBuddy[]) {
   if (!buddies || buddies.length === 0) return
   session.addParticipantsFromBuddies(buddies)
@@ -67,10 +82,21 @@ function onBuddyConfirm(buddies: BallBuddy[]) {
           </span>
         </div>
       </div>
-      <AppButton variant="primary" size="sm" @click="buddyModalOpen = true">
-        <UserPlus :size="14" />
-        添加人员
-      </AppButton>
+      <div class="flex items-center gap-2">
+        <AppButton
+          variant="danger"
+          size="sm"
+          :disabled="!session.participants.length"
+          @click="clearAllParticipants"
+        >
+          <Trash2 :size="14" />
+          全部删除
+        </AppButton>
+        <AppButton variant="primary" size="sm" @click="buddyModalOpen = true">
+          <UserPlus :size="14" />
+          添加人员
+        </AppButton>
+      </div>
     </div>
 
     <div

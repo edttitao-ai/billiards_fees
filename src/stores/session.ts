@@ -257,6 +257,13 @@ export const useSessionStore = defineStore('session', {
       this.recalc()
     },
 
+    /** 清空所有参与人员 */
+    clearParticipants() {
+      if (this.participants.length === 0) return
+      this.participants = []
+      this.recalc()
+    },
+
     updateDuration(id: string, delta: number) {
       const p = this.participants.find((x) => x.id === id)
       if (!p) return
