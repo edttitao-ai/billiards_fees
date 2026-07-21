@@ -21,6 +21,7 @@ import {
   defaultPosterFilename,
   downloadBlob
 } from '@/utils/posterImage'
+import { isWeChatBrowser } from '@/utils/env'
 import {
   totalFeeFromPackages,
   totalDurationFromPackages,
@@ -56,8 +57,11 @@ const previewOpen = ref(false)
 const posterRef = ref<HTMLElement | null>(null)
 /** 截图进行中：禁用按钮，避免重复触发 */
 const capturing = ref(false)
+/** 微信内置浏览器：改走"新窗口预览 + 长按保存"流程 */
+const isInWeChat = ref(false)
 
 function handleOpenPreview() {
+  isInWeChat.value = isWeChatBrowser()
   previewOpen.value = true
   close()
 }
@@ -71,6 +75,18 @@ function setPosterRef(el: Element | { $el?: Element } | null) {
   }
 }
 
+/** 把海报 PNG 在新窗口打开预览图（用于微信 WebView 长按保存） */
+function openPosterInNewTab(blob: Blob) {
+  const url = URL.createObjectURL(blob)
+  const w = window.open(url, '_blank')
+  // 某些浏览器/微信拦截新窗口时，w 可能为 null。仍保留 URL 让用户可以复制。
+  if (!w) {
+    ui.showToast('浏览器拦截了新窗口，请允许弹出后重试', 'warn')
+  }
+  // 延迟回收，避免新窗口还没来得及加载就被 revoke
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+
 /** 「保存图片」：渲染为 PNG 并触发浏览器下载 */
 async function handleSaveImage() {
   if (capturing.value) return
@@ -81,6 +97,12 @@ async function handleSaveImage() {
   capturing.value = true
   try {
     const blob = await captureNodeToPngBlob(posterRef.value)
+    if (isInWeChat.value) {
+      // 微信内置 WebView 会拦截 <a download>，改走"新窗口预览 + 长按保存"
+      openPosterInNewTab(blob)
+      ui.showToast('请在新打开的图片上长按保存', 'info')
+      return
+    }
     downloadBlob(blob, defaultPosterFilename(props.session.title))
     ui.showToast('图片已下载', 'success')
   } catch (e) {
@@ -105,7 +127,12 @@ async function handleCopyImage() {
     const blob = await captureNodeToPngBlob(posterRef.value)
     const ok = await copyPngBlobToClipboard(blob)
     if (ok) ui.showToast('图片已复制到剪贴板', 'success')
-    else ui.showToast('当前浏览器不支持复制图片，请用「保存图片」', 'warn')
+    else if (isInWeChat.value) {
+      ui.showToast(
+        '微信内置浏览器不允许复制图片，请用其他浏览器打开',
+        'warn'
+      )
+    } else ui.showToast('当前浏览器不支持复制图片，请用「保存图片」', 'warn')
   } catch (e) {
     ui.showToast(
       '复制图片失败：' + (e instanceof Error ? e.message : '未知错误'),
@@ -209,7 +236,12 @@ const participantsForPoster = computed<Participant[]>(() =>
           />
         </div>
         <p class="mt-3 text-center text-xs text-ink-500">
-          使用下方按钮可一键保存或复制为图片；长按或右键也可手动截图。
+          <template v-if="isInWeChat">
+            微信内置浏览器不支持直接下载。请点击「在新窗口打开」后，长按图片保存到相册。
+          </template>
+          <template v-else>
+            使用下方按钮可一键保存或复制为图片。
+          </template>
         </p>
       </div>
 
@@ -237,7 +269,7 @@ const participantsForPoster = computed<Participant[]>(() =>
           @click="handleSaveImage"
         >
           <Download :size="14" />
-          保存图片
+          {{ isInWeChat ? '在新窗口打开' : '保存图片' }}
         </button>
       </template>
     </AppModal>

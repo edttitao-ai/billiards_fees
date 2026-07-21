@@ -11,7 +11,6 @@ import SummaryCard from '@/components/business/SummaryCard.vue'
 import { useSessionStore } from '@/stores/session'
 import { useHistoryStore } from '@/stores/history'
 import { useUIStore } from '@/stores/ui'
-import { buildBillText, copyToClipboard } from '@/utils/share'
 
 const session = useSessionStore()
 const history = useHistoryStore()
@@ -77,13 +76,6 @@ async function saveSnapshot(silent = false): Promise<boolean> {
   }
 }
 
-async function onExport() {
-  const text = buildBillText(sessionView())
-  const ok = await copyToClipboard(text)
-  ui.showToast(ok ? '账单已复制到剪贴板' : '复制失败，请手动选择文本', ok ? 'success' : 'error')
-  await saveSnapshot(true)
-}
-
 async function onSave() {
   if (saving.value) return
   if (!canSave.value) {
@@ -130,7 +122,6 @@ async function onReset() {
       :session="sessionView()"
       :can-save="canSave"
       :saving="saving"
-      @export="onExport"
       @reset="onReset"
       @save="onSave"
     />

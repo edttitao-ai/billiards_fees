@@ -1,55 +1,83 @@
 import type { SessionState } from '@/types'
 import { formatCurrency, formatNumber } from './format'
 import {
-  totalFeeFromPackages,
-  totalDurationFromPackages,
+  avgDuration,
   avgFee,
   participantsTotalDuration,
-  avgDuration
+  personalFee,
+  totalDurationFromPackages,
+  totalFeeFromPackages
 } from './calc'
 
 /**
  * 生成可读账单文本。复制到剪贴板 / Web Share 通用。
+ * 个人费用按"时长加权"模型（pi = di × T / Σd）计算，与 store.recalc() 保持一致。
  */
 export function buildBillText(session: SessionState): string {
   const totalFee = totalFeeFromPackages(session.packages)
   const totalDur = totalDurationFromPackages(session.packages)
+  const tableCount = session.tableCount || 1
+  const tableDur = tableCount > 0 ? totalDur / tableCount : totalDur
   const avg = avgFee(totalFee, session.participants)
-  const sumDur = participantsTotalDuration(session.participants)
-  const max = session.participants.length
-    ? Math.max(...session.participants.map((p) => p.duration))
-    : 0
-  const fullCount = session.participants.filter((p) => Math.abs(p.duration - max) < 0.005).length
-  const fullFee = fullCount > 0 ? totalFee / fullCount : 0
+  const avgDur = avgDuration(totalDur, session.participants)
+
+  // 打满者：在场时长等于「每桌时长」的人
+  const durations = session.participants.map((p) => p.duration || 0)
+  const maxDur = durations.length ? Math.max(...durations) : 0
+  const fullCount =
+    maxDur > 0
+      ? durations.filter((d) => Math.abs(d - maxDur) < 0.005).length
+      : 0
+  const fullFee =
+    fullCount > 0 ? Math.round((totalFee / fullCount) * 100) / 100 : 0
 
   const lines: string[] = []
   lines.push(`【台费账单】${session.title}`)
+  lines.push(`生成时间：${new Date().toLocaleString('zh-CN', { hour12: false })}`)
+  lines.push('')
   lines.push('--- 套餐 ---')
   session.packages.forEach((p) => {
     if (!p.qty) return
+    const totalHours = p.hours * p.qty
+    const subFee = p.price * p.qty
     lines.push(
-      `${p.name} ×${p.qty}  ${formatCurrency(p.price)}/张  = ${formatCurrency(
-        p.price * p.qty
-      )}  (${formatNumber(p.hours * p.qty, 1)}h)`
+      `${p.name} ×${p.qty} 张  ${formatCurrency(p.price)}/张  = ${formatCurrency(
+        subFee
+      )}  ·  累计 ${formatNumber(totalHours, 1)} h`
     )
   })
+  lines.push('')
   lines.push('--- 人员 ---')
   lines.push(
     `${'姓名'.padEnd(8, ' ')}  ${'时长(h)'.padStart(8, ' ')}  ${'个人费用'.padStart(10, ' ')}`
   )
   session.participants.forEach((p) => {
+    const fee = personalFee(totalFee, session.participants, p.id)
     lines.push(
       `${p.name.padEnd(8, ' ')}  ${formatNumber(p.duration, 1).padStart(8, ' ')}  ${formatCurrency(
-        p.personalFee
+        fee
       ).padStart(10, ' ')}`
     )
   })
-  lines.push('---')
+  lines.push('')
+  lines.push('--- 汇总 ---')
+  lines.push(`台桌数：${tableCount} 桌 · 每桌时长 ${formatNumber(tableDur, 1)} h`)
   lines.push(`套餐总时长：${formatNumber(totalDur, 1)} 小时`)
-  lines.push(`台桌数：${session.tableCount || 1} 桌`)
+  lines.push(`人均时长：${formatNumber(avgDur, 1)} 小时`)
   lines.push(`总台费：${formatCurrency(totalFee)}`)
-  lines.push(`打满者人均：${formatCurrency(fullFee)}（共 ${fullCount} 人打满）`)
-  lines.push(`占用人时合计：${formatNumber(sumDur, 1)} h（早走者按 di × 总台费 / Σ在场 时长）`)
+  if (session.participants.length > 0) {
+    lines.push(
+      `人均费用：${formatCurrency(avg)}（不计早走加权的平均值）`
+    )
+    if (fullCount > 0) {
+      lines.push(`打满者人均：${formatCurrency(fullFee)}（共 ${fullCount} 人打满 ${formatNumber(maxDur, 1)} h）`)
+    }
+    lines.push(
+      `个人费用按在场时长加权：pi = di × 总台费 / Σd（早走少付、打满多付）`
+    )
+  } else {
+    lines.push('尚未添加参与人员')
+  }
 
   return lines.join('\n')
 }

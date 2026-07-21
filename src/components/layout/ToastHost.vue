@@ -36,7 +36,7 @@ const toneClass = computed(() => {
   <transition name="toast">
     <div
       v-if="t"
-      class="pointer-events-none fixed inset-x-0 top-16 z-50 flex justify-center px-4 sm:top-20"
+      class="pointer-events-none fixed inset-x-0 top-16 z-[60] flex justify-center px-4 sm:top-20"
     >
       <div
         :class="clsx('pointer-events-auto flex items-center gap-2 rounded-full px-4 py-2 shadow-soft', toneClass)"

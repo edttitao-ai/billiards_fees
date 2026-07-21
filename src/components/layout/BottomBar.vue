@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Copy, RotateCcw, BookmarkPlus } from 'lucide-vue-next'
+import { RotateCcw, BookmarkPlus } from 'lucide-vue-next'
 import AppButton from '@/components/base/AppButton.vue'
 import ShareChooser from '@/components/layout/ShareChooser.vue'
 import type { SessionState } from '@/types'
@@ -11,7 +11,6 @@ defineProps<{
 }>()
 
 defineEmits<{
-  (e: 'export'): void
   (e: 'reset'): void
   (e: 'save'): void
 }>()
@@ -23,17 +22,6 @@ defineEmits<{
     style="padding-bottom: max(8px, env(safe-area-inset-bottom))"
   >
     <div class="mx-auto flex max-w-[1080px] items-stretch gap-1.5 sm:gap-2">
-      <AppButton
-        variant="ghost"
-        size="sm"
-        class="h-9 px-2 text-xs"
-        title="复制账单文本"
-        aria-label="复制账单文本"
-        @click="$emit('export')"
-      >
-        <Copy :size="14" />
-        <span class="whitespace-nowrap">复制</span>
-      </AppButton>
       <AppButton
         variant="ghost"
         size="sm"
