@@ -8,3 +8,9 @@ export function isWeChatBrowser(): boolean {
   if (typeof navigator === 'undefined') return false
   return /MicroMessenger/i.test(navigator.userAgent || '')
 }
+
+/** 是否在移动端微信内置浏览器。`window.open` 在该环境下经常被静默拦截。 */
+export function isMobileWeChat(): boolean {
+  if (!isWeChatBrowser()) return false
+  return /Mobile|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '')
+}

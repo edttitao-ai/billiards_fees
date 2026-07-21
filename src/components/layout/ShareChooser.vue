@@ -21,7 +21,7 @@ import {
   defaultPosterFilename,
   downloadBlob
 } from '@/utils/posterImage'
-import { isWeChatBrowser } from '@/utils/env'
+import { isWeChatBrowser, isMobileWeChat } from '@/utils/env'
 import {
   totalFeeFromPackages,
   totalDurationFromPackages,
@@ -59,9 +59,12 @@ const posterRef = ref<HTMLElement | null>(null)
 const capturing = ref(false)
 /** 微信内置浏览器：改走"新窗口预览 + 长按保存"流程 */
 const isInWeChat = ref(false)
+/** 移动端微信：window.open 不可靠，改走"当前页大图预览 + 长按保存" */
+const isInMobileWeChat = ref(false)
 
 function handleOpenPreview() {
   isInWeChat.value = isWeChatBrowser()
+  isInMobileWeChat.value = isMobileWeChat()
   previewOpen.value = true
   close()
 }
@@ -75,7 +78,7 @@ function setPosterRef(el: Element | { $el?: Element } | null) {
   }
 }
 
-/** 把海报 PNG 在新窗口打开预览图（用于微信 WebView 长按保存） */
+/** 把海报 PNG 在新窗口打开预览图（用于 PC 端微信 WebView 长按保存） */
 function openPosterInNewTab(blob: Blob) {
   const url = URL.createObjectURL(blob)
   const w = window.open(url, '_blank')
@@ -85,6 +88,25 @@ function openPosterInNewTab(blob: Blob) {
   }
   // 延迟回收，避免新窗口还没来得及加载就被 revoke
   setTimeout(() => URL.revokeObjectURL(url), 30_000)
+}
+
+/** Blob → dataURL（避免 blob: URL 在不同上下文中的生命周期问题） */
+function blobToDataURL(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(reader.error || new Error('读取图片失败'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+/** 移动端微信：在当前页弹一张大图预览，用户长按图片保存到相册 */
+const mobilePreviewOpen = ref(false)
+const mobilePreviewUrl = ref<string>('')
+async function openPosterInAppPreview(blob: Blob) {
+  const dataUrl = await blobToDataURL(blob)
+  mobilePreviewUrl.value = dataUrl
+  mobilePreviewOpen.value = true
 }
 
 /** 「保存图片」：渲染为 PNG 并触发浏览器下载 */
@@ -97,8 +119,14 @@ async function handleSaveImage() {
   capturing.value = true
   try {
     const blob = await captureNodeToPngBlob(posterRef.value)
+    if (isInMobileWeChat.value) {
+      // 手机端微信 window.open 会被静默拦截，改走"当前页大图预览 + 长按保存"
+      await openPosterInAppPreview(blob)
+      ui.showToast('请长按图片保存到相册', 'info')
+      return
+    }
     if (isInWeChat.value) {
-      // 微信内置 WebView 会拦截 <a download>，改走"新窗口预览 + 长按保存"
+      // PC 端微信：仍走"新窗口预览 + 长按保存"
       openPosterInNewTab(blob)
       ui.showToast('请在新打开的图片上长按保存', 'info')
       return
@@ -236,7 +264,10 @@ const participantsForPoster = computed<Participant[]>(() =>
           />
         </div>
         <p class="mt-3 text-center text-xs text-ink-500">
-          <template v-if="isInWeChat">
+          <template v-if="isInMobileWeChat">
+            微信内置浏览器不支持直接下载。点击「长按图片保存」后，长按图片保存到相册。
+          </template>
+          <template v-else-if="isInWeChat">
             微信内置浏览器不支持直接下载。请点击「在新窗口打开」后，长按图片保存到相册。
           </template>
           <template v-else>
@@ -269,7 +300,37 @@ const participantsForPoster = computed<Participant[]>(() =>
           @click="handleSaveImage"
         >
           <Download :size="14" />
-          {{ isInWeChat ? '在新窗口打开' : '保存图片' }}
+          {{ isInMobileWeChat ? '图片保存' : isInWeChat ? '在新窗口打开' : '保存图片' }}
+        </button>
+      </template>
+    </AppModal>
+
+    <!-- 移动端微信：在当前页弹一张大图，用户长按保存到相册 -->
+    <AppModal
+      v-model:open="mobilePreviewOpen"
+      title="长按图片保存"
+      max-width-class="sm:max-w-[640px]"
+    >
+      <div class="bg-ink-50 px-3 py-4 sm:px-5">
+        <img
+          v-if="mobilePreviewUrl"
+          :src="mobilePreviewUrl"
+          alt="账单海报"
+          class="mx-auto block max-w-full select-none rounded-md border border-ink-200 bg-white shadow-card"
+          style="-webkit-touch-callout: default; -webkit-user-select: none; user-select: none;"
+          draggable="false"
+        />
+        <p class="mt-3 text-center text-xs text-ink-500">
+          长按图片，选择「保存到相册」或「发送给朋友」。
+        </p>
+      </div>
+      <template #footer>
+        <button
+          type="button"
+          class="inline-flex h-9 items-center gap-1.5 rounded-[11px] border border-brand-700 bg-brand-700 px-3 text-sm font-semibold text-white shadow-soft transition hover:border-brand-800 hover:bg-brand-800"
+          @click="mobilePreviewOpen = false"
+        >
+          关闭
         </button>
       </template>
     </AppModal>
